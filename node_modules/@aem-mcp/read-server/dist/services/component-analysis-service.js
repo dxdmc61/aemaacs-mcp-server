@@ -1,18 +1,15 @@
-"use strict";
 /**
  * Component Analysis Service for AEMaaCS read operations
  * Handles component discovery, text extraction, and image reference extraction
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ComponentAnalysisService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-const content_discovery_service_js_1 = require("./content-discovery-service.js");
-class ComponentAnalysisService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+import { ContentDiscoveryService } from './content-discovery-service.js';
+export class ComponentAnalysisService {
     constructor(client, contentDiscoveryService) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
-        this.contentDiscoveryService = contentDiscoveryService || new content_discovery_service_js_1.ContentDiscoveryService(client);
+        this.logger = Logger.getInstance();
+        this.contentDiscoveryService = contentDiscoveryService || new ContentDiscoveryService(client);
     }
     /**
      * Scan page components for discovery
@@ -21,12 +18,12 @@ class ComponentAnalysisService {
         try {
             this.logger.debug('Scanning page components', { pagePath });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             // Get page content with components
             const pageContentResponse = await this.contentDiscoveryService.getPageContent(pagePath);
             if (!pageContentResponse.success || !pageContentResponse.data) {
-                throw new errors_js_1.AEMException(`Failed to get page content for ${pagePath}`, 'SERVER_ERROR', true, undefined, { response: pageContentResponse });
+                throw new AEMException(`Failed to get page content for ${pagePath}`, 'SERVER_ERROR', true, undefined, { response: pageContentResponse });
             }
             const pageContent = pageContentResponse.data;
             const components = [];
@@ -51,10 +48,10 @@ class ComponentAnalysisService {
         }
         catch (error) {
             this.logger.error('Failed to scan page components', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while scanning components for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while scanning components for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -64,7 +61,7 @@ class ComponentAnalysisService {
         try {
             this.logger.debug('Getting all text content', { pagePaths });
             if (!pagePaths || pagePaths.length === 0) {
-                throw new errors_js_1.AEMException('At least one page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('At least one page path is required', 'VALIDATION_ERROR', false);
             }
             const results = [];
             // Process each page sequentially
@@ -95,10 +92,10 @@ class ComponentAnalysisService {
         }
         catch (error) {
             this.logger.error('Failed to get all text content', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting all text content', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting all text content', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -108,12 +105,12 @@ class ComponentAnalysisService {
         try {
             this.logger.debug('Getting page text content', { pagePath });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             // Get page content with components
             const pageContentResponse = await this.contentDiscoveryService.getPageContent(pagePath);
             if (!pageContentResponse.success || !pageContentResponse.data) {
-                throw new errors_js_1.AEMException(`Failed to get page content for ${pagePath}`, 'SERVER_ERROR', true, undefined, { response: pageContentResponse });
+                throw new AEMException(`Failed to get page content for ${pagePath}`, 'SERVER_ERROR', true, undefined, { response: pageContentResponse });
             }
             const pageContent = pageContentResponse.data;
             const textItems = [];
@@ -140,10 +137,10 @@ class ComponentAnalysisService {
         }
         catch (error) {
             this.logger.error('Failed to get page text content', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting text content for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while getting text content for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -153,12 +150,12 @@ class ComponentAnalysisService {
         try {
             this.logger.debug('Getting page images', { pagePath });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             // Get page content with components
             const pageContentResponse = await this.contentDiscoveryService.getPageContent(pagePath);
             if (!pageContentResponse.success || !pageContentResponse.data) {
-                throw new errors_js_1.AEMException(`Failed to get page content for ${pagePath}`, 'SERVER_ERROR', true, undefined, { response: pageContentResponse });
+                throw new AEMException(`Failed to get page content for ${pagePath}`, 'SERVER_ERROR', true, undefined, { response: pageContentResponse });
             }
             const pageContent = pageContentResponse.data;
             const images = [];
@@ -182,10 +179,10 @@ class ComponentAnalysisService {
         }
         catch (error) {
             this.logger.error('Failed to get page images', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting images for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while getting images for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -373,5 +370,4 @@ class ComponentAnalysisService {
             .trim(); // Trim leading/trailing whitespace
     }
 }
-exports.ComponentAnalysisService = ComponentAnalysisService;
 //# sourceMappingURL=component-analysis-service.js.map

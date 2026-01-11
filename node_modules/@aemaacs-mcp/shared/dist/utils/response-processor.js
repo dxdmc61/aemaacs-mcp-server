@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Response processing utilities for AEMaaCS operations
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.responseProcessor = exports.ResponseProcessor = void 0;
-const aem_js_1 = require("../types/aem.js");
-const logger_js_1 = require("./logger.js");
-const errors_js_1 = require("./errors.js");
-const crypto_1 = require("crypto");
-class ResponseProcessor {
+import { ErrorType } from '../types/aem.js';
+import { Logger } from './logger.js';
+import { AEMException } from './errors.js';
+import { randomUUID } from 'crypto';
+export class ResponseProcessor {
     constructor() {
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Process successful AEM response
@@ -35,7 +32,7 @@ class ResponseProcessor {
         if (opts.includeMetadata) {
             response.metadata = {
                 timestamp: new Date(),
-                requestId: requestId || (0, crypto_1.randomUUID)(),
+                requestId: requestId || randomUUID(),
                 duration: duration || 0,
                 cached
             };
@@ -53,13 +50,13 @@ class ResponseProcessor {
             ...options
         };
         let aemError;
-        if (error instanceof errors_js_1.AEMException) {
+        if (error instanceof AEMException) {
             aemError = error.toAEMError();
         }
         else {
             // Convert generic error to AEMError
             aemError = {
-                code: aem_js_1.ErrorType.UNKNOWN_ERROR,
+                code: ErrorType.UNKNOWN_ERROR,
                 message: error.message || 'An unknown error occurred',
                 recoverable: false,
                 details: opts.sanitizeOutput ? undefined : { stack: error.stack }
@@ -73,7 +70,7 @@ class ResponseProcessor {
         if (opts.includeMetadata) {
             response.metadata = {
                 timestamp: new Date(),
-                requestId: requestId || (0, crypto_1.randomUUID)(),
+                requestId: requestId || randomUUID(),
                 duration: duration || 0
             };
         }
@@ -218,7 +215,7 @@ class ResponseProcessor {
      * Create AEMException from AEM error response
      */
     createAEMExceptionFromResponse(response, operation) {
-        let code = aem_js_1.ErrorType.SERVER_ERROR;
+        let code = ErrorType.SERVER_ERROR;
         let message = 'AEM operation failed';
         let recoverable = false;
         let retryAfter;
@@ -229,7 +226,7 @@ class ResponseProcessor {
         }
         else if (response.exception) {
             message = response.exception.message || response.exception;
-            code = aem_js_1.ErrorType.SERVER_ERROR;
+            code = ErrorType.SERVER_ERROR;
         }
         else if (response.message) {
             message = response.message;
@@ -240,33 +237,33 @@ class ResponseProcessor {
         if (response.retryAfter || response['retry-after']) {
             retryAfter = parseInt(response.retryAfter || response['retry-after']) * 1000;
         }
-        return new errors_js_1.AEMException(`${operation}: ${message}`, code, recoverable, retryAfter, { originalResponse: response });
+        return new AEMException(`${operation}: ${message}`, code, recoverable, retryAfter, { originalResponse: response });
     }
     /**
      * Map AEM error codes to internal error types
      */
     mapAEMErrorCode(aemCode) {
         const codeMap = {
-            'javax.jcr.AccessDeniedException': aem_js_1.ErrorType.AUTHORIZATION_ERROR,
-            'javax.jcr.security.AccessControlException': aem_js_1.ErrorType.AUTHORIZATION_ERROR,
-            'javax.jcr.PathNotFoundException': aem_js_1.ErrorType.NOT_FOUND_ERROR,
-            'javax.jcr.ItemNotFoundException': aem_js_1.ErrorType.NOT_FOUND_ERROR,
-            'javax.jcr.InvalidItemStateException': aem_js_1.ErrorType.VALIDATION_ERROR,
-            'javax.jcr.RepositoryException': aem_js_1.ErrorType.SERVER_ERROR,
-            'java.net.SocketTimeoutException': aem_js_1.ErrorType.TIMEOUT_ERROR,
-            'java.net.ConnectException': aem_js_1.ErrorType.NETWORK_ERROR,
-            'java.io.IOException': aem_js_1.ErrorType.NETWORK_ERROR
+            'javax.jcr.AccessDeniedException': ErrorType.AUTHORIZATION_ERROR,
+            'javax.jcr.security.AccessControlException': ErrorType.AUTHORIZATION_ERROR,
+            'javax.jcr.PathNotFoundException': ErrorType.NOT_FOUND_ERROR,
+            'javax.jcr.ItemNotFoundException': ErrorType.NOT_FOUND_ERROR,
+            'javax.jcr.InvalidItemStateException': ErrorType.VALIDATION_ERROR,
+            'javax.jcr.RepositoryException': ErrorType.SERVER_ERROR,
+            'java.net.SocketTimeoutException': ErrorType.TIMEOUT_ERROR,
+            'java.net.ConnectException': ErrorType.NETWORK_ERROR,
+            'java.io.IOException': ErrorType.NETWORK_ERROR
         };
-        return codeMap[aemCode] || aem_js_1.ErrorType.SERVER_ERROR;
+        return codeMap[aemCode] || ErrorType.SERVER_ERROR;
     }
     /**
      * Determine if error is recoverable
      */
     isRecoverableError(code, response) {
         const recoverableErrors = [
-            aem_js_1.ErrorType.NETWORK_ERROR,
-            aem_js_1.ErrorType.TIMEOUT_ERROR,
-            aem_js_1.ErrorType.SERVER_ERROR
+            ErrorType.NETWORK_ERROR,
+            ErrorType.TIMEOUT_ERROR,
+            ErrorType.SERVER_ERROR
         ];
         if (recoverableErrors.includes(code)) {
             return true;
@@ -283,17 +280,17 @@ class ResponseProcessor {
      */
     getJSONRPCErrorCode(aemCode) {
         switch (aemCode) {
-            case aem_js_1.ErrorType.VALIDATION_ERROR:
+            case ErrorType.VALIDATION_ERROR:
                 return -32602; // Invalid params
-            case aem_js_1.ErrorType.NOT_FOUND_ERROR:
+            case ErrorType.NOT_FOUND_ERROR:
                 return -32601; // Method not found
-            case aem_js_1.ErrorType.AUTHENTICATION_ERROR:
-            case aem_js_1.ErrorType.AUTHORIZATION_ERROR:
+            case ErrorType.AUTHENTICATION_ERROR:
+            case ErrorType.AUTHORIZATION_ERROR:
                 return -32001; // Custom authentication error
-            case aem_js_1.ErrorType.NETWORK_ERROR:
-            case aem_js_1.ErrorType.TIMEOUT_ERROR:
+            case ErrorType.NETWORK_ERROR:
+            case ErrorType.TIMEOUT_ERROR:
                 return -32002; // Custom network error
-            case aem_js_1.ErrorType.SERVER_ERROR:
+            case ErrorType.SERVER_ERROR:
                 return -32603; // Internal error
             default:
                 return -32603; // Internal error
@@ -386,9 +383,8 @@ class ResponseProcessor {
         return response;
     }
 }
-exports.ResponseProcessor = ResponseProcessor;
 /**
  * Global response processor instance
  */
-exports.responseProcessor = new ResponseProcessor();
+export const responseProcessor = new ResponseProcessor();
 //# sourceMappingURL=response-processor.js.map

@@ -2,8 +2,8 @@
  * System Operations Service for AEMaaCS write operations
  * Handles ACL configuration, async job management, and JCR property manipulation
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface ACLEntry {
     principal: string;
     privileges: string[];

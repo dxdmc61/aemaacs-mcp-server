@@ -105,8 +105,7 @@ export class MetricsCollector {
       // Collect default metrics if enabled
       if (this.config.collectDefaultMetrics) {
         collectDefaultMetrics({
-          prefix: this.config.defaultMetricsPrefix,
-          timeout: this.config.defaultMetricsTimeout
+          prefix: this.config.defaultMetricsPrefix
         });
       }
 

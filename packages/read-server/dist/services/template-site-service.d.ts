@@ -2,8 +2,8 @@
  * Template and Site Service for AEMaaCS read operations
  * Handles site discovery, template management, and locale operations
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface Site {
     path: string;
     name: string;

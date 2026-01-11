@@ -6,9 +6,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { WriteServerConfig } from '../../../shared/src/config/server-config.js';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { WriteServerConfig } from '@aemaacs-mcp/shared';
 import { MCPHandler, MCPRequest } from '../mcp/mcp-handler.js';
 
 export interface JSONRPCRequest {
@@ -220,7 +220,7 @@ export class HTTPHandler {
 
     // Check API key (required for write operations)
     if (!this.config.security.apiKeys || this.config.security.apiKeys.length === 0) {
-      return res.status(500).json({
+      res.status(500).json({
         jsonrpc: '2.0',
         error: {
           code: -32001,
@@ -228,11 +228,12 @@ export class HTTPHandler {
         },
         id: null
       });
+      return;
     }
 
     if (!apiKey || !this.config.security.apiKeys.includes(apiKey)) {
       this.logger.warn('Unauthorized write attempt', { ip: clientIP, hasApiKey: !!apiKey });
-      return res.status(401).json({
+      res.status(401).json({
         jsonrpc: '2.0',
         error: {
           code: -32001,
@@ -240,11 +241,12 @@ export class HTTPHandler {
         },
         id: null
       });
+      return;
     }
 
     // Check allowed IPs
     if (this.config.security.allowedIPs && this.config.security.allowedIPs.length > 0) {
-      const isAllowed = this.config.security.allowedIPs.some(allowedIP => {
+      const isAllowed = this.config.security.allowedIPs.some((allowedIP: string) => {
         if (allowedIP.includes('/')) {
           // CIDR notation - simplified check
           return clientIP?.startsWith(allowedIP.split('/')[0]);
@@ -254,7 +256,7 @@ export class HTTPHandler {
 
       if (!isAllowed) {
         this.logger.warn('IP not allowed for write operations', { ip: clientIP });
-        return res.status(403).json({
+        res.status(403).json({
           jsonrpc: '2.0',
           error: {
             code: -32002,
@@ -262,6 +264,7 @@ export class HTTPHandler {
           },
           id: null
         });
+        return;
       }
     }
 
@@ -297,7 +300,7 @@ export class HTTPHandler {
                          req.query.confirm === 'true';
 
         if (!confirmed) {
-          return res.status(400).json({
+          res.status(400).json({
             jsonrpc: '2.0',
             error: {
               code: -32003,
@@ -309,6 +312,7 @@ export class HTTPHandler {
             },
             id: req.body?.id || null
           });
+          return;
         }
       }
     }
@@ -325,7 +329,7 @@ export class HTTPHandler {
 
       // Validate JSON-RPC format
       if (!request || request.jsonrpc !== '2.0' || !request.method) {
-        return res.status(400).json({
+        res.status(400).json({
           jsonrpc: '2.0',
           error: {
             code: -32600,
@@ -333,6 +337,7 @@ export class HTTPHandler {
           },
           id: request?.id || null
         });
+        return;
       }
 
       let response: JSONRPCResponse;
@@ -472,22 +477,23 @@ export class HTTPHandler {
   private async handleToolCall(req: Request, res: Response): Promise<void> {
     try {
       const toolName = req.params.toolName;
-      const arguments = req.body || {};
+      const toolArgs = req.body || {};
 
       const mcpRequest: MCPRequest = {
         method: 'tools/call',
         params: {
           name: toolName,
-          arguments
+          arguments: toolArgs
         }
       };
 
       const mcpResponse = await this.mcpHandler.executeTool(mcpRequest);
       
       if (mcpResponse.isError) {
-        return res.status(400).json({
+        res.status(400).json({
           error: mcpResponse.content?.[0]?.text || 'Tool execution failed'
         });
+        return;
       }
 
       // Parse and return the result

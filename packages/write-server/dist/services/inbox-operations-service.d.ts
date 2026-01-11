@@ -2,8 +2,8 @@
  * Inbox Operations Service for AEMaaCS write operations
  * Handles inbox task completion, status updates, and cleanup operations
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface CompleteInboxTaskOptions {
     comment?: string;
     taskData?: Record<string, any>;

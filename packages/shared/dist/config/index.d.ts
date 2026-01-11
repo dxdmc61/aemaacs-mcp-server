@@ -26,9 +26,13 @@ export interface ServerSettings {
 export interface SecurityConfig {
     enableInputValidation: boolean;
     enableAuditLogging: boolean;
+    enableApiKeyAuth?: boolean;
+    enableIPAllowlist?: boolean;
     maxRequestSize: string;
     allowedFileTypes: string[];
     maxFileSize: number;
+    allowedIPs?: string[];
+    apiKeys?: string[];
 }
 export interface LoggingConfig {
     level: 'error' | 'warn' | 'info' | 'debug';
@@ -48,6 +52,7 @@ export interface CacheConfig {
     enabled: boolean;
     ttl: number;
     maxSize: number;
+    maxMemory?: number;
     strategy: 'lru' | 'lfu' | 'ttl';
     redis?: {
         host: string;
@@ -65,6 +70,10 @@ export interface RetryConfig {
 export declare class ConfigManager {
     private static instance;
     private config;
+    private configWatcher?;
+    private configFile?;
+    private lastModified?;
+    private configListeners;
     private constructor();
     static getInstance(): ConfigManager;
     getConfig(): ServerConfig;
@@ -87,5 +96,37 @@ export declare class ConfigManager {
         valid: boolean;
         errors?: string[];
     };
+    /**
+     * Add configuration change listener
+     */
+    addConfigListener(listener: () => void): void;
+    /**
+     * Remove configuration change listener
+     */
+    removeConfigListener(listener: () => void): void;
+    /**
+     * Start configuration file watcher for hot-reload
+     */
+    private startConfigWatcher;
+    /**
+     * Check for configuration file changes
+     */
+    private checkConfigFileChanges;
+    /**
+     * Notify all configuration listeners
+     */
+    private notifyConfigListeners;
+    /**
+     * Stop configuration watcher
+     */
+    stopConfigWatcher(): void;
+    /**
+     * Get configuration summary for debugging
+     */
+    getConfigSummary(): Record<string, any>;
+    /**
+     * Cleanup resources
+     */
+    cleanup(): void;
 }
 //# sourceMappingURL=index.d.ts.map

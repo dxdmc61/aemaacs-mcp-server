@@ -1,16 +1,13 @@
-"use strict";
 /**
  * User Administration Service for AEMaaCS write operations
  * Handles user and group creation, deletion, and membership management
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserAdministrationService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class UserAdministrationService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class UserAdministrationService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Create user using /libs/granite/security/post/authorizables
@@ -19,11 +16,11 @@ class UserAdministrationService {
         try {
             this.logger.debug('Creating user', { userId, options });
             if (!userId || !password) {
-                throw new errors_js_1.AEMException('User ID and password are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('User ID and password are required', 'VALIDATION_ERROR', false);
             }
             // Validate user ID format
             if (!this.isValidUserId(userId)) {
-                throw new errors_js_1.AEMException('Invalid user ID format. User IDs must contain only alphanumeric characters, hyphens, and underscores', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid user ID format. User IDs must contain only alphanumeric characters, hyphens, and underscores', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('createUser', '');
@@ -51,7 +48,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post('/libs/granite/security/post/authorizables', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to create user: ${userId}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to create user: ${userId}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseUserOperationResponse(response.data, userId);
             this.logger.debug('Successfully created user', {
@@ -70,10 +67,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to create user', error, { userId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while creating user: ${userId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, userId });
+            throw new AEMException(`Unexpected error while creating user: ${userId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, userId });
         }
     }
     /**
@@ -89,11 +86,11 @@ class UserAdministrationService {
         try {
             this.logger.debug('Deleting user', { userPath });
             if (!userPath) {
-                throw new errors_js_1.AEMException('User path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('User path is required', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent deletion of system users
             if (this.isSystemUser(userPath)) {
-                throw new errors_js_1.AEMException(`Cannot delete system user: ${userPath}`, 'VALIDATION_ERROR', false);
+                throw new AEMException(`Cannot delete system user: ${userPath}`, 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('deleteAuthorizable', '');
@@ -105,7 +102,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post(userPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to delete user: ${userPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete user: ${userPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseUserOperationResponse(response.data, userPath);
             this.logger.debug('Successfully deleted user', {
@@ -124,10 +121,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to delete user', error, { userPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting user: ${userPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, userPath });
+            throw new AEMException(`Unexpected error while deleting user: ${userPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, userPath });
         }
     }
     /**
@@ -137,11 +134,11 @@ class UserAdministrationService {
         try {
             this.logger.debug('Creating group', { groupId, options });
             if (!groupId) {
-                throw new errors_js_1.AEMException('Group ID is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Group ID is required', 'VALIDATION_ERROR', false);
             }
             // Validate group ID format
             if (!this.isValidGroupId(groupId)) {
-                throw new errors_js_1.AEMException('Invalid group ID format. Group IDs must contain only alphanumeric characters, hyphens, and underscores', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid group ID format. Group IDs must contain only alphanumeric characters, hyphens, and underscores', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('createGroup', '');
@@ -165,7 +162,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post('/libs/granite/security/post/authorizables', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to create group: ${groupId}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to create group: ${groupId}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseGroupOperationResponse(response.data, groupId);
             this.logger.debug('Successfully created group', {
@@ -184,10 +181,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to create group', error, { groupId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while creating group: ${groupId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupId });
+            throw new AEMException(`Unexpected error while creating group: ${groupId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupId });
         }
     }
     /**
@@ -197,11 +194,11 @@ class UserAdministrationService {
         try {
             this.logger.debug('Deleting group', { groupPath });
             if (!groupPath) {
-                throw new errors_js_1.AEMException('Group path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Group path is required', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent deletion of system groups
             if (this.isSystemGroup(groupPath)) {
-                throw new errors_js_1.AEMException(`Cannot delete system group: ${groupPath}`, 'VALIDATION_ERROR', false);
+                throw new AEMException(`Cannot delete system group: ${groupPath}`, 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('deleteAuthorizable', '');
@@ -213,7 +210,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post(groupPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to delete group: ${groupPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete group: ${groupPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseGroupOperationResponse(response.data, groupPath);
             this.logger.debug('Successfully deleted group', {
@@ -232,10 +229,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to delete group', error, { groupPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting group: ${groupPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupPath });
+            throw new AEMException(`Unexpected error while deleting group: ${groupPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupPath });
         }
     }
     /**
@@ -245,7 +242,7 @@ class UserAdministrationService {
         try {
             this.logger.debug('Adding user to group', { groupPath, userId });
             if (!groupPath || !userId) {
-                throw new errors_js_1.AEMException('Group path and user ID are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Group path and user ID are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('addMembers', userId);
@@ -257,7 +254,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post(groupPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to add user ${userId} to group: ${groupPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to add user ${userId} to group: ${groupPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseMembershipResponse(response.data, [userId], []);
             this.logger.debug('Successfully added user to group', {
@@ -276,10 +273,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to add user to group', error, { groupPath, userId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while adding user to group: ${userId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupPath, userId });
+            throw new AEMException(`Unexpected error while adding user to group: ${userId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupPath, userId });
         }
     }
     /**
@@ -289,7 +286,7 @@ class UserAdministrationService {
         try {
             this.logger.debug('Adding group to group', { parentGroupPath, childGroupId });
             if (!parentGroupPath || !childGroupId) {
-                throw new errors_js_1.AEMException('Parent group path and child group ID are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Parent group path and child group ID are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('addMembers', childGroupId);
@@ -301,7 +298,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post(parentGroupPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to add group ${childGroupId} to group: ${parentGroupPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to add group ${childGroupId} to group: ${parentGroupPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseMembershipResponse(response.data, [childGroupId], []);
             this.logger.debug('Successfully added group to group', {
@@ -320,10 +317,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to add group to group', error, { parentGroupPath, childGroupId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while adding group to group: ${childGroupId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentGroupPath, childGroupId });
+            throw new AEMException(`Unexpected error while adding group to group: ${childGroupId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentGroupPath, childGroupId });
         }
     }
     /**
@@ -333,7 +330,7 @@ class UserAdministrationService {
         try {
             this.logger.debug('Removing user from group', { groupPath, userId });
             if (!groupPath || !userId) {
-                throw new errors_js_1.AEMException('Group path and user ID are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Group path and user ID are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('removeMembers', userId);
@@ -345,7 +342,7 @@ class UserAdministrationService {
             };
             const response = await this.client.post(groupPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to remove user ${userId} from group: ${groupPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to remove user ${userId} from group: ${groupPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseMembershipResponse(response.data, [], [userId]);
             this.logger.debug('Successfully removed user from group', {
@@ -364,10 +361,10 @@ class UserAdministrationService {
         }
         catch (error) {
             this.logger.error('Failed to remove user from group', error, { groupPath, userId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while removing user from group: ${userId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupPath, userId });
+            throw new AEMException(`Unexpected error while removing user from group: ${userId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, groupPath, userId });
         }
     }
     /**
@@ -464,5 +461,4 @@ class UserAdministrationService {
             systemGroupNames.includes(groupName);
     }
 }
-exports.UserAdministrationService = UserAdministrationService;
 //# sourceMappingURL=user-administration-service.js.map

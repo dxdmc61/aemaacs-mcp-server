@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Content Discovery Service for AEMaaCS read operations
  * Handles page listing, content retrieval, and JCR node traversal
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContentDiscoveryService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class ContentDiscoveryService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class ContentDiscoveryService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * List pages with depth control and pagination
@@ -19,7 +16,7 @@ class ContentDiscoveryService {
         try {
             this.logger.debug('Listing pages', { rootPath, options });
             if (!rootPath) {
-                throw new errors_js_1.AEMException('Root path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Root path is required', 'VALIDATION_ERROR', false);
             }
             const params = {
                 path: rootPath,
@@ -36,9 +33,30 @@ class ContentDiscoveryService {
                     resource: rootPath
                 }
             };
-            const response = await this.client.get('/bin/wcm/contentsync/content.json', params, requestOptions);
+            // Use the standard AEM JSON export with depth selector
+            const jsonPath = `${rootPath}.${params.depth}.json`;
+            const response = await this.client.get(jsonPath, {}, requestOptions);
+            // Log detailed response for debugging
+            this.logger.debug('AEM listPages response', {
+                rootPath,
+                jsonPath,
+                success: response.success,
+                hasData: !!response.data,
+                error: response.error,
+                metadata: response.metadata
+            });
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to list pages at ${rootPath}`, 'SERVER_ERROR', true, undefined, { response });
+                // Log the full error details
+                const listError = new Error(`Failed to list pages at ${rootPath}`);
+                this.logger.error('Failed to list pages - response details', listError, {
+                    rootPath,
+                    jsonPath,
+                    responseSuccess: response.success,
+                    responseError: response.error,
+                    responseData: response.data,
+                    metadata: response.metadata
+                });
+                throw new AEMException(`Failed to list pages at ${rootPath}`, response.error?.code || 'SERVER_ERROR', response.error?.recoverable !== false, response.error?.retryAfter, { response, jsonPath });
             }
             // Parse the page list response
             let pages = this.parsePageListResponse(response.data, rootPath);
@@ -68,10 +86,10 @@ class ContentDiscoveryService {
         }
         catch (error) {
             this.logger.error('Failed to list pages', error, { rootPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while listing pages at ${rootPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, rootPath });
+            throw new AEMException(`Unexpected error while listing pages at ${rootPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, rootPath });
         }
     }
     /**
@@ -81,7 +99,7 @@ class ContentDiscoveryService {
         try {
             this.logger.debug('Listing children nodes', { nodePath, options });
             if (!nodePath) {
-                throw new errors_js_1.AEMException('Node path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Node path is required', 'VALIDATION_ERROR', false);
             }
             const params = {
                 path: nodePath,
@@ -105,7 +123,7 @@ class ContentDiscoveryService {
             };
             const response = await this.client.get('/bin/wcm/contentfinder/content.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to list children at ${nodePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to list children at ${nodePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             // Parse the node list response
             let nodes = this.parseNodeListResponse(response.data, nodePath);
@@ -132,10 +150,10 @@ class ContentDiscoveryService {
         }
         catch (error) {
             this.logger.error('Failed to list children nodes', error, { nodePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while listing children at ${nodePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, nodePath });
+            throw new AEMException(`Unexpected error while listing children at ${nodePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, nodePath });
         }
     }
     /**
@@ -145,7 +163,7 @@ class ContentDiscoveryService {
         try {
             this.logger.debug('Getting page content', { pagePath });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -158,7 +176,7 @@ class ContentDiscoveryService {
             // Get page content with components
             const response = await this.client.get(`${pagePath}.infinity.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Page not found: ${pagePath}`, 'NOT_FOUND_ERROR', false, undefined, { pagePath });
+                throw new AEMException(`Page not found: ${pagePath}`, 'NOT_FOUND_ERROR', false, undefined, { pagePath });
             }
             const pageContent = this.parsePageContentResponse(response.data, pagePath);
             this.logger.debug('Successfully retrieved page content', {
@@ -178,10 +196,10 @@ class ContentDiscoveryService {
         }
         catch (error) {
             this.logger.error('Failed to get page content', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting page content for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while getting page content for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -191,7 +209,7 @@ class ContentDiscoveryService {
         try {
             this.logger.debug('Getting page properties', { pagePath });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -204,7 +222,7 @@ class ContentDiscoveryService {
             // Get page properties
             const response = await this.client.get(`${pagePath}/jcr:content.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Page not found: ${pagePath}`, 'NOT_FOUND_ERROR', false, undefined, { pagePath });
+                throw new AEMException(`Page not found: ${pagePath}`, 'NOT_FOUND_ERROR', false, undefined, { pagePath });
             }
             const pageProperties = this.parsePagePropertiesResponse(response.data, pagePath);
             this.logger.debug('Successfully retrieved page properties', { pagePath });
@@ -221,10 +239,10 @@ class ContentDiscoveryService {
         }
         catch (error) {
             this.logger.error('Failed to get page properties', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting page properties for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while getting page properties for ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -234,7 +252,7 @@ class ContentDiscoveryService {
         try {
             this.logger.debug('Getting node content', { nodePath, options });
             if (!nodePath) {
-                throw new errors_js_1.AEMException('Node path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Node path is required', 'VALIDATION_ERROR', false);
             }
             const depth = options.depth !== undefined ? options.depth : 1;
             const suffix = depth === 0 ? '.json' : `.${depth}.json`;
@@ -249,7 +267,7 @@ class ContentDiscoveryService {
             // Get node content
             const response = await this.client.get(`${nodePath}${suffix}`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Node not found: ${nodePath}`, 'NOT_FOUND_ERROR', false, undefined, { nodePath });
+                throw new AEMException(`Node not found: ${nodePath}`, 'NOT_FOUND_ERROR', false, undefined, { nodePath });
             }
             const nodeContent = this.parseNodeContentResponse(response.data, nodePath);
             this.logger.debug('Successfully retrieved node content', {
@@ -270,10 +288,10 @@ class ContentDiscoveryService {
         }
         catch (error) {
             this.logger.error('Failed to get node content', error, { nodePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting node content for ${nodePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, nodePath });
+            throw new AEMException(`Unexpected error while getting node content for ${nodePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, nodePath });
         }
     }
     /**
@@ -602,5 +620,4 @@ class ContentDiscoveryService {
         });
     }
 }
-exports.ContentDiscoveryService = ContentDiscoveryService;
 //# sourceMappingURL=content-discovery-service.js.map

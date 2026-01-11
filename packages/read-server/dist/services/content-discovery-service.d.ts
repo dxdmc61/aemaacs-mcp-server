@@ -2,8 +2,8 @@
  * Content Discovery Service for AEMaaCS read operations
  * Handles page listing, content retrieval, and JCR node traversal
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, ContentNode, Page } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse, ContentNode, Page } from '@aemaacs-mcp/shared';
 export interface ListPagesOptions {
     depth?: number;
     limit?: number;

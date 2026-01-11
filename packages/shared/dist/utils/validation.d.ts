@@ -13,6 +13,18 @@ export declare class ValidationUtils {
      */
     static validatePath(path: string): ValidationResult;
     /**
+     * Validate AEM content path with enhanced security checks
+     */
+    static validateContentPath(path: string): ValidationResult;
+    /**
+     * Validate JCR property name
+     */
+    static validateJCRPropertyName(propertyName: string): ValidationResult;
+    /**
+     * Validate JCR property value
+     */
+    static validateJCRPropertyValue(value: any, propertyName: string): ValidationResult;
+    /**
      * Validate JCR query for security
      */
     static validateJCRQuery(query: string): ValidationResult;
@@ -24,6 +36,18 @@ export declare class ValidationUtils {
         mimeType?: string;
         size?: number;
     }): ValidationResult;
+    /**
+     * Validate file content for security threats
+     */
+    static validateFileContent(file: Buffer, mimeType: string): ValidationResult;
+    /**
+     * Validate search query for security
+     */
+    static validateSearchQuery(query: string): ValidationResult;
+    /**
+     * Validate user input for XSS prevention
+     */
+    static validateUserInput(input: any): ValidationResult;
     /**
      * Sanitize input object by removing potentially dangerous properties
      */

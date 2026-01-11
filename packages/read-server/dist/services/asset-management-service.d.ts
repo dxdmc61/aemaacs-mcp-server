@@ -2,8 +2,8 @@
  * Asset Management Service for AEMaaCS read operations
  * Handles asset metadata retrieval, listing, renditions, references, and versions
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Asset, AssetMetadata, Rendition } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse, Asset, AssetMetadata, Rendition } from '@aemaacs-mcp/shared';
 export interface AssetMetadataExtended extends AssetMetadata {
     'dc:title'?: string;
     'dc:description'?: string;

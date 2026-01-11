@@ -83,6 +83,10 @@ export declare class AEMHttpClient {
      */
     private refreshServiceAccountToken;
     /**
+     * Generate JWT for service account authentication
+     */
+    private generateServiceAccountJWT;
+    /**
      * Get authentication headers
      */
     private getAuthHeaders;

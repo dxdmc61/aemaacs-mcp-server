@@ -1,21 +1,16 @@
-"use strict";
 /**
  * Caching utilities for AEMaaCS MCP servers
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CacheFactory = exports.RedisCache = exports.MemoryCache = void 0;
-exports.Cacheable = Cacheable;
-exports.InvalidateCache = InvalidateCache;
-const logger_js_1 = require("./logger.js");
-const index_js_1 = require("../config/index.js");
+import { Logger } from './logger.js';
+import { ConfigManager } from '../config/index.js';
 /**
  * In-memory LRU cache implementation
  */
-class MemoryCache {
+export class MemoryCache {
     constructor(config) {
         this.cache = new Map();
-        this.logger = logger_js_1.Logger.getInstance();
-        const configManager = index_js_1.ConfigManager.getInstance();
+        this.logger = Logger.getInstance();
+        const configManager = ConfigManager.getInstance();
         this.config = { ...configManager.getCacheConfig(), ...config };
         this.stats = {
             hits: 0,
@@ -200,61 +195,216 @@ class MemoryCache {
         }
     }
 }
-exports.MemoryCache = MemoryCache;
 /**
- * Redis cache implementation (placeholder for future Redis support)
+ * Redis cache implementation
  */
-class RedisCache {
+export class RedisCache {
     constructor(config) {
-        this.logger = logger_js_1.Logger.getInstance();
-        const configManager = index_js_1.ConfigManager.getInstance();
+        this.isConnected = false;
+        this.logger = Logger.getInstance();
+        const configManager = ConfigManager.getInstance();
         this._config = { ...configManager.getCacheConfig(), ...config };
-        // TODO: Initialize Redis connection
-        this.logger.warn('Redis cache not yet implemented, falling back to memory cache');
+        this.initializeRedis();
     }
-    async get(_key) {
-        // TODO: Implement Redis get
-        throw new Error('Redis cache not implemented');
+    async initializeRedis() {
+        try {
+            const Redis = require('ioredis');
+            const redisConfig = {
+                host: this._config.redis?.host || 'localhost',
+                port: this._config.redis?.port || 6379,
+                password: this._config.redis?.password,
+                db: this._config.redis?.db || 0,
+                retryDelayOnFailover: 100,
+                enableReadyCheck: false,
+                maxRetriesPerRequest: 3,
+                lazyConnect: true,
+                keepAlive: 30000,
+                family: 4,
+                connectTimeout: 10000,
+                commandTimeout: 5000,
+                retryDelayOnClusterDown: 300,
+                enableOfflineQueue: false,
+                maxLoadingTimeout: 1000
+            };
+            this.redis = new Redis(redisConfig);
+            // Event handlers
+            this.redis.on('connect', () => {
+                this.logger.info('Redis connected');
+                this.isConnected = true;
+            });
+            this.redis.on('ready', () => {
+                this.logger.info('Redis ready');
+            });
+            this.redis.on('error', (error) => {
+                this.logger.error('Redis error', error);
+                this.isConnected = false;
+            });
+            this.redis.on('close', () => {
+                this.logger.warn('Redis connection closed');
+                this.isConnected = false;
+            });
+            this.redis.on('reconnecting', () => {
+                this.logger.info('Redis reconnecting');
+            });
+            // Connect to Redis
+            await this.redis.connect();
+        }
+        catch (error) {
+            this.logger.error('Failed to initialize Redis cache', error);
+            this.isConnected = false;
+            throw new Error(`Redis initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
-    async set(_key, _value, _ttl) {
-        // TODO: Implement Redis set
-        throw new Error('Redis cache not implemented');
+    async ensureConnected() {
+        if (!this.isConnected) {
+            try {
+                await this.redis.connect();
+            }
+            catch (error) {
+                this.logger.error('Failed to reconnect to Redis', error);
+                throw new Error('Redis connection unavailable');
+            }
+        }
     }
-    async delete(_key) {
-        // TODO: Implement Redis delete
-        throw new Error('Redis cache not implemented');
+    async get(key) {
+        try {
+            await this.ensureConnected();
+            const value = await this.redis.get(key);
+            if (value === null) {
+                return null;
+            }
+            return JSON.parse(value);
+        }
+        catch (error) {
+            this.logger.error(`Redis get error for key ${key}`, error);
+            return null;
+        }
+    }
+    async set(key, value, ttl) {
+        try {
+            await this.ensureConnected();
+            const serializedValue = JSON.stringify(value);
+            if (ttl) {
+                await this.redis.setex(key, ttl, serializedValue);
+            }
+            else {
+                await this.redis.set(key, serializedValue);
+            }
+        }
+        catch (error) {
+            this.logger.error(`Redis set error for key ${key}`, error);
+            throw error;
+        }
+    }
+    async delete(key) {
+        try {
+            await this.ensureConnected();
+            const result = await this.redis.del(key);
+            return result > 0;
+        }
+        catch (error) {
+            this.logger.error(`Redis delete error for key ${key}`, error);
+            return false;
+        }
     }
     async clear() {
-        // TODO: Implement Redis clear
-        throw new Error('Redis cache not implemented');
+        try {
+            await this.ensureConnected();
+            await this.redis.flushdb();
+        }
+        catch (error) {
+            this.logger.error('Redis clear error', error);
+            throw error;
+        }
     }
-    async has(_key) {
-        // TODO: Implement Redis has
-        throw new Error('Redis cache not implemented');
+    async has(key) {
+        try {
+            await this.ensureConnected();
+            const result = await this.redis.exists(key);
+            return result === 1;
+        }
+        catch (error) {
+            this.logger.error(`Redis has error for key ${key}`, error);
+            return false;
+        }
     }
     async getStats() {
-        // TODO: Implement Redis stats
-        throw new Error('Redis cache not implemented');
+        try {
+            await this.ensureConnected();
+            const info = await this.redis.info('memory');
+            const dbSize = await this.redis.dbsize();
+            // Parse Redis INFO output
+            const memoryMatch = info.match(/used_memory:(\d+)/);
+            const usedMemory = memoryMatch ? parseInt(memoryMatch[1]) : 0;
+            return {
+                hits: 0, // Redis doesn't provide hit/miss stats by default
+                misses: 0,
+                sets: 0,
+                deletes: 0,
+                hitRate: 0,
+                size: dbSize,
+                maxSize: this._config.maxSize,
+                memoryUsage: usedMemory
+            };
+        }
+        catch (error) {
+            this.logger.error('Redis stats error', error);
+            return {
+                hits: 0,
+                misses: 0,
+                sets: 0,
+                deletes: 0,
+                hitRate: 0,
+                size: 0,
+                maxSize: this._config.maxSize,
+                memoryUsage: 0
+            };
+        }
     }
-    async invalidatePattern(_pattern) {
-        // TODO: Implement Redis pattern invalidation
-        throw new Error('Redis cache not implemented');
+    async invalidatePattern(pattern) {
+        try {
+            await this.ensureConnected();
+            const keys = await this.redis.keys(pattern);
+            if (keys.length === 0) {
+                return 0;
+            }
+            const result = await this.redis.del(...keys);
+            return result;
+        }
+        catch (error) {
+            this.logger.error(`Redis pattern invalidation error for pattern ${pattern}`, error);
+            return 0;
+        }
+    }
+    /**
+     * Close Redis connection
+     */
+    async disconnect() {
+        try {
+            if (this.redis && this.isConnected) {
+                await this.redis.quit();
+                this.isConnected = false;
+                this.logger.info('Redis connection closed');
+            }
+        }
+        catch (error) {
+            this.logger.error('Error closing Redis connection', error);
+        }
     }
 }
-exports.RedisCache = RedisCache;
 /**
  * Cache factory
  */
-class CacheFactory {
+export class CacheFactory {
     static getInstance() {
         if (!CacheFactory.instance) {
-            const config = index_js_1.ConfigManager.getInstance().getCacheConfig();
+            const config = ConfigManager.getInstance().getCacheConfig();
             if (config.redis && config.redis.host) {
                 try {
                     CacheFactory.instance = new RedisCache(config);
                 }
                 catch (error) {
-                    logger_js_1.Logger.getInstance().warn('Failed to initialize Redis cache, falling back to memory cache', error);
+                    Logger.getInstance().warn('Failed to initialize Redis cache, falling back to memory cache', error);
                     CacheFactory.instance = new MemoryCache(config);
                 }
             }
@@ -268,11 +418,10 @@ class CacheFactory {
         CacheFactory.instance = cache;
     }
 }
-exports.CacheFactory = CacheFactory;
 /**
  * Cacheable decorator for methods
  */
-function Cacheable(keyGenerator, ttl) {
+export function Cacheable(keyGenerator, ttl) {
     return function (_target, _propertyName, descriptor) {
         const method = descriptor.value;
         const cache = CacheFactory.getInstance();
@@ -295,7 +444,7 @@ function Cacheable(keyGenerator, ttl) {
 /**
  * Cache invalidation decorator
  */
-function InvalidateCache(pattern) {
+export function InvalidateCache(pattern) {
     return function (_target, _propertyName, descriptor) {
         const method = descriptor.value;
         const cache = CacheFactory.getInstance();

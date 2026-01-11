@@ -9,6 +9,12 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "dev": "npm run dev --workspaces",
+    "start:read": "node packages/read-server/dist/index.js",
+    "start:read:stdio": "node packages/read-server/dist/index.js --stdio",
+    "start:read:http": "node packages/read-server/dist/index.js --http",
+    "start:write": "node packages/write-server/dist/index.js",
+    "start:write:stdio": "node packages/write-server/dist/index.js --stdio",
+    "start:write:http": "node packages/write-server/dist/index.js --http",
     "test": "npm run test --workspaces",
     "test:all": "node scripts/test-all.js",
     "test:integration": "jest tests/integration --testTimeout=10000",
@@ -38,7 +44,11 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
+    "axios": "^1.13.2",
+    "body-parser": "^2.2.2",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1",
+    "swagger-ui-express": "^5.0.1"
   }
 }

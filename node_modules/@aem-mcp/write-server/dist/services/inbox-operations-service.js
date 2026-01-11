@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Inbox Operations Service for AEMaaCS write operations
  * Handles inbox task completion, status updates, and cleanup operations
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.InboxOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class InboxOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class InboxOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Complete inbox task for task completion
@@ -19,7 +16,7 @@ class InboxOperationsService {
         try {
             this.logger.debug('Completing inbox task', { taskId, action, options });
             if (!taskId || !action) {
-                throw new errors_js_1.AEMException('Task ID and action are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Task ID and action are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('item', taskId);
@@ -44,7 +41,7 @@ class InboxOperationsService {
             };
             const response = await this.client.post('/libs/granite/taskmanager/updatetask', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to complete inbox task: ${taskId}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to complete inbox task: ${taskId}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseInboxTaskOperationResponse(response.data, taskId);
             this.logger.debug('Successfully completed inbox task', {
@@ -64,10 +61,10 @@ class InboxOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to complete inbox task', error, { taskId, action });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while completing inbox task: ${taskId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, taskId, action });
+            throw new AEMException(`Unexpected error while completing inbox task: ${taskId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, taskId, action });
         }
     }
     /**
@@ -77,7 +74,7 @@ class InboxOperationsService {
         try {
             this.logger.debug('Updating task status', { taskId, status, options });
             if (!taskId || !status) {
-                throw new errors_js_1.AEMException('Task ID and status are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Task ID and status are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('item', taskId);
@@ -108,7 +105,7 @@ class InboxOperationsService {
             };
             const response = await this.client.post('/libs/granite/taskmanager/updatetask', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to update task status: ${taskId}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to update task status: ${taskId}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseTaskStatusUpdateResponse(response.data, taskId, status);
             this.logger.debug('Successfully updated task status', {
@@ -128,10 +125,10 @@ class InboxOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to update task status', error, { taskId, status });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while updating task status: ${taskId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, taskId, status });
+            throw new AEMException(`Unexpected error while updating task status: ${taskId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, taskId, status });
         }
     }
     /**
@@ -157,10 +154,10 @@ class InboxOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to cleanup page move items', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while cleaning up page move items', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while cleaning up page move items', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -186,10 +183,10 @@ class InboxOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to cleanup rollout items', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while cleaning up rollout items', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while cleaning up rollout items', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -276,7 +273,7 @@ class InboxOperationsService {
             return [];
         }
         catch (error) {
-            this.logger.warn('Failed to get cleanup items', error, { itemType, status });
+            this.logger.warn('Failed to get cleanup items', { itemType, status, error: error.message });
             return [];
         }
     }
@@ -293,7 +290,7 @@ class InboxOperationsService {
             return response.success && response.data && response.data.success !== false;
         }
         catch (error) {
-            this.logger.warn('Failed to cleanup item', error, { itemId: item.id });
+            this.logger.warn('Failed to cleanup item', { itemId: item.id, error: error.message });
             return false;
         }
     }
@@ -325,5 +322,4 @@ class InboxOperationsService {
         };
     }
 }
-exports.InboxOperationsService = InboxOperationsService;
 //# sourceMappingURL=inbox-operations-service.js.map

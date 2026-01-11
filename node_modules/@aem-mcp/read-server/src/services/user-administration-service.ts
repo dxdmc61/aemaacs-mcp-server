@@ -3,10 +3,10 @@
  * Handles user and group management, profile information, and permissions
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, User, Group, UserProfile, Permission } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse, User, Group, UserProfile, Permission } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface ListUsersOptions {
   path?: string;
@@ -651,7 +651,7 @@ export class UserAdministrationService {
       path: hit.path,
       profile: this.parseUserProfile(hit),
       groups: hit['rep:groups'] || [],
-      permissions: [], // Would need separate call to get permissions
+      permissions: [] as Array<{ path: string; privileges: string[]; allow: boolean }>, // Would need separate call to get permissions
       created: hit['jcr:created'] ? new Date(hit['jcr:created']) : undefined,
       lastModified: hit['jcr:lastModified'] ? new Date(hit['jcr:lastModified']) : undefined,
       lastLogin: hit['rep:lastLogin'] ? new Date(hit['rep:lastLogin']) : undefined,

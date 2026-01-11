@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Content Fragment Operations Service for AEMaaCS write operations
  * Handles content fragment creation, updating, and deletion
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContentFragmentOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class ContentFragmentOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class ContentFragmentOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Create content fragment using /api/assets/
@@ -19,15 +16,15 @@ class ContentFragmentOperationsService {
         try {
             this.logger.debug('Creating content fragment', { parentPath, fragmentName, options });
             if (!parentPath || !fragmentName || !options.model || !options.title) {
-                throw new errors_js_1.AEMException('Parent path, fragment name, model, and title are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Parent path, fragment name, model, and title are required', 'VALIDATION_ERROR', false);
             }
             // Validate fragment name
             if (!this.isValidFragmentName(fragmentName)) {
-                throw new errors_js_1.AEMException('Invalid fragment name. Fragment names must not contain special characters', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid fragment name. Fragment names must not contain special characters', 'VALIDATION_ERROR', false);
             }
             // Validate parent path is in DAM
             if (!parentPath.startsWith('/content/dam/')) {
-                throw new errors_js_1.AEMException('Content fragments must be created in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
+                throw new AEMException('Content fragments must be created in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
             }
             const fragmentPath = `${parentPath}/${fragmentName}`;
             const payload = {
@@ -55,7 +52,7 @@ class ContentFragmentOperationsService {
             };
             const response = await this.client.post(`/api/assets${fragmentPath}`, payload, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to create content fragment', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to create content fragment', 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseContentFragmentOperationResponse(response.data, fragmentPath);
             this.logger.debug('Successfully created content fragment', {
@@ -74,10 +71,10 @@ class ContentFragmentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to create content fragment', error, { parentPath, fragmentName });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while creating content fragment', 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, fragmentName });
+            throw new AEMException('Unexpected error while creating content fragment', 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, fragmentName });
         }
     }
     /**
@@ -87,11 +84,11 @@ class ContentFragmentOperationsService {
         try {
             this.logger.debug('Updating content fragment', { fragmentPath, options });
             if (!fragmentPath) {
-                throw new errors_js_1.AEMException('Fragment path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Fragment path is required', 'VALIDATION_ERROR', false);
             }
             // Validate fragment path is in DAM
             if (!fragmentPath.startsWith('/content/dam/')) {
-                throw new errors_js_1.AEMException('Content fragment path must be in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
+                throw new AEMException('Content fragment path must be in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
             }
             const payload = {};
             // Update basic properties
@@ -122,7 +119,7 @@ class ContentFragmentOperationsService {
             };
             const response = await this.client.put(`/api/assets${fragmentPath}/jcr:content`, payload, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to update content fragment: ${fragmentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to update content fragment: ${fragmentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseContentFragmentOperationResponse(response.data, fragmentPath);
             this.logger.debug('Successfully updated content fragment', {
@@ -141,10 +138,10 @@ class ContentFragmentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to update content fragment', error, { fragmentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while updating content fragment: ${fragmentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath });
+            throw new AEMException(`Unexpected error while updating content fragment: ${fragmentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath });
         }
     }
     /**
@@ -154,15 +151,15 @@ class ContentFragmentOperationsService {
         try {
             this.logger.debug('Deleting content fragment', { fragmentPath, options });
             if (!fragmentPath) {
-                throw new errors_js_1.AEMException('Fragment path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Fragment path is required', 'VALIDATION_ERROR', false);
             }
             // Validate fragment path is in DAM
             if (!fragmentPath.startsWith('/content/dam/')) {
-                throw new errors_js_1.AEMException('Content fragment path must be in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
+                throw new AEMException('Content fragment path must be in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent deletion of important fragments
             if (this.isSystemFragment(fragmentPath)) {
-                throw new errors_js_1.AEMException(`Cannot delete system content fragment: ${fragmentPath}`, 'VALIDATION_ERROR', false, undefined, { fragmentPath });
+                throw new AEMException(`Cannot delete system content fragment: ${fragmentPath}`, 'VALIDATION_ERROR', false, undefined, { fragmentPath });
             }
             const params = {};
             if (options.force !== undefined) {
@@ -177,9 +174,12 @@ class ContentFragmentOperationsService {
                     resource: fragmentPath
                 }
             };
-            const response = await this.client.delete(`/api/assets${fragmentPath}`, params, requestOptions);
+            // Build URL with query params
+            const queryString = new URLSearchParams(params).toString();
+            const url = `/api/assets${fragmentPath}${queryString ? '?' + queryString : ''}`;
+            const response = await this.client.delete(url, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to delete content fragment: ${fragmentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete content fragment: ${fragmentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseContentFragmentOperationResponse(response.data, fragmentPath);
             this.logger.debug('Successfully deleted content fragment', {
@@ -198,10 +198,10 @@ class ContentFragmentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to delete content fragment', error, { fragmentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting content fragment: ${fragmentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath });
+            throw new AEMException(`Unexpected error while deleting content fragment: ${fragmentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath });
         }
     }
     /**
@@ -298,6 +298,550 @@ class ContentFragmentOperationsService {
         return systemFragmentPrefixes.some(prefix => fragmentPath.startsWith(prefix)) ||
             fragmentPath.split('/').length <= 4; // Protect root level fragments
     }
+    // ============================================================================
+    // CONTENT FRAGMENT MODEL OPERATIONS
+    // ============================================================================
+    /**
+     * Create a new content fragment model
+     */
+    async createContentFragmentModel(parentPath, modelName, options) {
+        try {
+            this.logger.debug('Creating content fragment model', { parentPath, modelName, options });
+            if (!parentPath || !modelName || !options.title || !options.elements) {
+                throw new AEMException('Parent path, model name, title, and elements are required', 'VALIDATION_ERROR', false);
+            }
+            // Validate model path is in conf
+            if (!parentPath.startsWith('/conf/')) {
+                throw new AEMException('Content fragment models must be created in conf (/conf/)', 'VALIDATION_ERROR', false);
+            }
+            const modelPath = `${parentPath}/${modelName}`;
+            const payload = {
+                'jcr:primaryType': 'nt:unstructured',
+                'jcr:title': options.title,
+                'jcr:description': options.description || '',
+                'elements': {
+                    'jcr:primaryType': 'nt:unstructured',
+                    ...this.formatModelElements(options.elements)
+                },
+                ...options.properties
+            };
+            const requestOptions = {
+                context: {
+                    operation: 'createContentFragmentModel',
+                    resource: modelPath
+                }
+            };
+            const response = await this.client.post(modelPath, payload, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException('Failed to create content fragment model', 'SERVER_ERROR', true, undefined, { response });
+            }
+            const result = this.parseContentFragmentOperationResponse(response.data, modelPath);
+            this.logger.debug('Successfully created content fragment model', {
+                modelPath,
+                elementCount: options.elements.length
+            });
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to create content fragment model', error, { parentPath, modelName });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException('Unexpected error while creating content fragment model', 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, modelName });
+        }
+    }
+    /**
+     * Get content fragment model information
+     */
+    async getContentFragmentModel(modelPath) {
+        try {
+            this.logger.debug('Getting content fragment model', { modelPath });
+            if (!modelPath) {
+                throw new AEMException('Model path is required', 'VALIDATION_ERROR', false);
+            }
+            const requestOptions = {
+                context: {
+                    operation: 'getContentFragmentModel',
+                    resource: modelPath
+                }
+            };
+            const response = await this.client.get(`${modelPath}.json`, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException(`Failed to get content fragment model: ${modelPath}`, 'SERVER_ERROR', true, undefined, { response });
+            }
+            const model = this.parseContentFragmentModel(response.data, modelPath);
+            this.logger.debug('Successfully retrieved content fragment model', { modelPath });
+            return {
+                success: true,
+                data: model,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to get content fragment model', error, { modelPath });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException(`Unexpected error while getting content fragment model: ${modelPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, modelPath });
+        }
+    }
+    /**
+     * List all content fragment models
+     */
+    async listContentFragmentModels(confPath = '/conf') {
+        try {
+            this.logger.debug('Listing content fragment models', { confPath });
+            const requestOptions = {
+                context: {
+                    operation: 'listContentFragmentModels',
+                    resource: confPath
+                }
+            };
+            // Use QueryBuilder to find all content fragment models
+            const query = {
+                'type': 'nt:unstructured',
+                'path': confPath,
+                'property': 'jcr:primaryType',
+                'property.value': 'nt:unstructured',
+                'p.limit': '-1'
+            };
+            const response = await this.client.get(`/bin/querybuilder.json?${new URLSearchParams(query).toString()}`, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException('Failed to list content fragment models', 'SERVER_ERROR', true, undefined, { response });
+            }
+            const models = [];
+            if (response.data.hits) {
+                for (const hit of response.data.hits) {
+                    try {
+                        const model = await this.getContentFragmentModel(hit.path);
+                        if (model.success && model.data) {
+                            models.push(model.data);
+                        }
+                    }
+                    catch (error) {
+                        this.logger.warn('Failed to parse content fragment model', { path: hit.path, error: error.message });
+                    }
+                }
+            }
+            this.logger.debug('Successfully listed content fragment models', {
+                confPath,
+                modelCount: models.length
+            });
+            return {
+                success: true,
+                data: models,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to list content fragment models', error, { confPath });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException('Unexpected error while listing content fragment models', 'UNKNOWN_ERROR', false, undefined, { originalError: error, confPath });
+        }
+    }
+    // ============================================================================
+    // CONTENT FRAGMENT VARIATION OPERATIONS
+    // ============================================================================
+    /**
+     * Create a new variation for a content fragment
+     */
+    async createContentFragmentVariation(fragmentPath, variationName, options) {
+        try {
+            this.logger.debug('Creating content fragment variation', { fragmentPath, variationName, options });
+            if (!fragmentPath || !variationName) {
+                throw new AEMException('Fragment path and variation name are required', 'VALIDATION_ERROR', false);
+            }
+            // Validate fragment path is in DAM
+            if (!fragmentPath.startsWith('/content/dam/')) {
+                throw new AEMException('Content fragment path must be in DAM (/content/dam/)', 'VALIDATION_ERROR', false);
+            }
+            const variationPath = `${fragmentPath}/jcr:content/variations/${variationName}`;
+            const payload = {
+                'jcr:primaryType': 'nt:unstructured',
+                'title': options.title || variationName,
+                'description': options.description || '',
+                'isMaster': options.isMaster || false,
+                'data': {
+                    'jcr:primaryType': 'nt:unstructured',
+                    ...this.formatFragmentElements(options.elements || {})
+                }
+            };
+            const requestOptions = {
+                context: {
+                    operation: 'createContentFragmentVariation',
+                    resource: variationPath
+                }
+            };
+            const response = await this.client.post(variationPath, payload, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException('Failed to create content fragment variation', 'SERVER_ERROR', true, undefined, { response });
+            }
+            const result = this.parseContentFragmentOperationResponse(response.data, variationPath);
+            this.logger.debug('Successfully created content fragment variation', {
+                variationPath,
+                isMaster: options.isMaster
+            });
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to create content fragment variation', error, { fragmentPath, variationName });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException('Unexpected error while creating content fragment variation', 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath, variationName });
+        }
+    }
+    /**
+     * Update a content fragment variation
+     */
+    async updateContentFragmentVariation(fragmentPath, variationName, options) {
+        try {
+            this.logger.debug('Updating content fragment variation', { fragmentPath, variationName, options });
+            if (!fragmentPath || !variationName) {
+                throw new AEMException('Fragment path and variation name are required', 'VALIDATION_ERROR', false);
+            }
+            const variationPath = `${fragmentPath}/jcr:content/variations/${variationName}`;
+            const payload = {};
+            if (options.title !== undefined) {
+                payload.title = options.title;
+            }
+            if (options.description !== undefined) {
+                payload.description = options.description;
+            }
+            if (options.isMaster !== undefined) {
+                payload.isMaster = options.isMaster;
+            }
+            if (options.elements) {
+                payload.data = {
+                    ...this.formatFragmentElements(options.elements)
+                };
+            }
+            const requestOptions = {
+                context: {
+                    operation: 'updateContentFragmentVariation',
+                    resource: variationPath
+                }
+            };
+            const response = await this.client.put(variationPath, payload, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException(`Failed to update content fragment variation: ${variationPath}`, 'SERVER_ERROR', true, undefined, { response });
+            }
+            const result = this.parseContentFragmentOperationResponse(response.data, variationPath);
+            this.logger.debug('Successfully updated content fragment variation', { variationPath });
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to update content fragment variation', error, { fragmentPath, variationName });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException(`Unexpected error while updating content fragment variation: ${variationName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath, variationName });
+        }
+    }
+    /**
+     * Delete a content fragment variation
+     */
+    async deleteContentFragmentVariation(fragmentPath, variationName) {
+        try {
+            this.logger.debug('Deleting content fragment variation', { fragmentPath, variationName });
+            if (!fragmentPath || !variationName) {
+                throw new AEMException('Fragment path and variation name are required', 'VALIDATION_ERROR', false);
+            }
+            const variationPath = `${fragmentPath}/jcr:content/variations/${variationName}`;
+            const requestOptions = {
+                context: {
+                    operation: 'deleteContentFragmentVariation',
+                    resource: variationPath
+                }
+            };
+            const response = await this.client.delete(variationPath, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException(`Failed to delete content fragment variation: ${variationPath}`, 'SERVER_ERROR', true, undefined, { response });
+            }
+            const result = this.parseContentFragmentOperationResponse(response.data, variationPath);
+            this.logger.debug('Successfully deleted content fragment variation', { variationPath });
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to delete content fragment variation', error, { fragmentPath, variationName });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException(`Unexpected error while deleting content fragment variation: ${variationName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath, variationName });
+        }
+    }
+    /**
+     * List all variations for a content fragment
+     */
+    async listContentFragmentVariations(fragmentPath) {
+        try {
+            this.logger.debug('Listing content fragment variations', { fragmentPath });
+            if (!fragmentPath) {
+                throw new AEMException('Fragment path is required', 'VALIDATION_ERROR', false);
+            }
+            const variationsPath = `${fragmentPath}/jcr:content/variations.json`;
+            const requestOptions = {
+                context: {
+                    operation: 'listContentFragmentVariations',
+                    resource: fragmentPath
+                }
+            };
+            const response = await this.client.get(variationsPath, requestOptions);
+            if (!response.success || !response.data) {
+                throw new AEMException(`Failed to list content fragment variations: ${fragmentPath}`, 'SERVER_ERROR', true, undefined, { response });
+            }
+            const variations = [];
+            if (response.data) {
+                for (const [name, data] of Object.entries(response.data)) {
+                    if (typeof data === 'object' && data !== null) {
+                        const variationData = data;
+                        variations.push({
+                            name,
+                            title: variationData.title,
+                            description: variationData.description,
+                            elements: variationData.data || {},
+                            isMaster: variationData.isMaster || false,
+                            created: variationData['jcr:created'] ? new Date(variationData['jcr:created']) : undefined,
+                            lastModified: variationData['jcr:lastModified'] ? new Date(variationData['jcr:lastModified']) : undefined,
+                            createdBy: variationData['jcr:createdBy'],
+                            lastModifiedBy: variationData['jcr:lastModifiedBy']
+                        });
+                    }
+                }
+            }
+            this.logger.debug('Successfully listed content fragment variations', {
+                fragmentPath,
+                variationCount: variations.length
+            });
+            return {
+                success: true,
+                data: variations,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: response.metadata?.requestId || '',
+                    duration: response.metadata?.duration || 0
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to list content fragment variations', error, { fragmentPath });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException(`Unexpected error while listing content fragment variations: ${fragmentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath });
+        }
+    }
+    // ============================================================================
+    // CONTENT FRAGMENT REFERENCE OPERATIONS
+    // ============================================================================
+    /**
+     * Get references for a content fragment
+     */
+    async getContentFragmentReferences(fragmentPath) {
+        try {
+            this.logger.debug('Getting content fragment references', { fragmentPath });
+            if (!fragmentPath) {
+                throw new AEMException('Fragment path is required', 'VALIDATION_ERROR', false);
+            }
+            const references = [];
+            const referencedBy = [];
+            // Get outgoing references (what this fragment references)
+            const outgoingQuery = {
+                'type': 'nt:unstructured',
+                'path': fragmentPath,
+                'property': 'value',
+                'property.value': '*',
+                'p.limit': '-1'
+            };
+            const outgoingResponse = await this.client.get(`/bin/querybuilder.json?${new URLSearchParams(outgoingQuery).toString()}`, {
+                context: {
+                    operation: 'getContentFragmentReferences',
+                    resource: fragmentPath
+                }
+            });
+            if (outgoingResponse.success && outgoingResponse.data?.hits) {
+                for (const hit of outgoingResponse.data.hits) {
+                    const referencePath = hit.value;
+                    if (this.isValidReference(referencePath)) {
+                        references.push({
+                            type: this.getReferenceType(referencePath),
+                            path: referencePath,
+                            title: hit.title || hit.name
+                        });
+                    }
+                }
+            }
+            // Get incoming references (what references this fragment)
+            const incomingQuery = {
+                'type': 'nt:unstructured',
+                'path': '/content',
+                'property': 'value',
+                'property.value': fragmentPath,
+                'p.limit': '-1'
+            };
+            const incomingResponse = await this.client.get(`/bin/querybuilder.json?${new URLSearchParams(incomingQuery).toString()}`, {
+                context: {
+                    operation: 'getContentFragmentReferences',
+                    resource: fragmentPath
+                }
+            });
+            if (incomingResponse.success && incomingResponse.data?.hits) {
+                for (const hit of incomingResponse.data.hits) {
+                    const referencingPath = hit.path.replace(/\/[^\/]*$/, ''); // Remove the property name
+                    if (this.isValidReference(referencingPath)) {
+                        referencedBy.push({
+                            type: this.getReferenceType(referencingPath),
+                            path: referencingPath,
+                            title: hit.title || hit.name
+                        });
+                    }
+                }
+            }
+            const result = {
+                fragmentPath,
+                references,
+                referencedBy
+            };
+            this.logger.debug('Successfully retrieved content fragment references', {
+                fragmentPath,
+                referencesCount: references.length,
+                referencedByCount: referencedBy.length
+            });
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    timestamp: new Date(),
+                    requestId: outgoingResponse.metadata?.requestId || '',
+                    duration: (outgoingResponse.metadata?.duration || 0) + (incomingResponse.metadata?.duration || 0)
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error('Failed to get content fragment references', error, { fragmentPath });
+            if (error instanceof AEMException) {
+                throw error;
+            }
+            throw new AEMException(`Unexpected error while getting content fragment references: ${fragmentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fragmentPath });
+        }
+    }
+    // ============================================================================
+    // PRIVATE HELPER METHODS
+    // ============================================================================
+    /**
+     * Format model elements for storage
+     */
+    formatModelElements(elements) {
+        const formattedElements = {};
+        for (const element of elements) {
+            formattedElements[element.name] = {
+                'jcr:primaryType': 'nt:unstructured',
+                'title': element.title || element.name,
+                'description': element.description || '',
+                'type': element.type,
+                'required': element.required || false,
+                'validation': element.validation || {},
+                'defaultValue': element.defaultValue || ''
+            };
+        }
+        return formattedElements;
+    }
+    /**
+     * Parse content fragment model from response
+     */
+    parseContentFragmentModel(data, path) {
+        const elements = [];
+        if (data.elements) {
+            for (const [name, elementData] of Object.entries(data.elements)) {
+                if (typeof elementData === 'object' && elementData !== null) {
+                    const element = elementData;
+                    elements.push({
+                        name,
+                        type: element.type || 'text',
+                        title: element.title,
+                        description: element.description,
+                        required: element.required || false,
+                        validation: element.validation || {},
+                        defaultValue: element.defaultValue
+                    });
+                }
+            }
+        }
+        return {
+            path,
+            name: path.split('/').pop() || '',
+            title: data['jcr:title'],
+            description: data['jcr:description'],
+            elements,
+            created: data['jcr:created'] ? new Date(data['jcr:created']) : undefined,
+            lastModified: data['jcr:lastModified'] ? new Date(data['jcr:lastModified']) : undefined,
+            createdBy: data['jcr:createdBy'],
+            lastModifiedBy: data['jcr:lastModifiedBy']
+        };
+    }
+    /**
+     * Check if a path is a valid reference
+     */
+    isValidReference(path) {
+        return path && (path.startsWith('/content/') ||
+            path.startsWith('/content/dam/') ||
+            path.startsWith('/conf/'));
+    }
+    /**
+     * Get reference type based on path
+     */
+    getReferenceType(path) {
+        if (path.startsWith('/content/dam/')) {
+            return 'assetreference';
+        }
+        else if (path.startsWith('/conf/')) {
+            return 'fragmentreference';
+        }
+        else {
+            return 'contentreference';
+        }
+    }
 }
-exports.ContentFragmentOperationsService = ContentFragmentOperationsService;
 //# sourceMappingURL=content-fragment-operations-service.js.map

@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Asset Management Service for AEMaaCS read operations
  * Handles asset metadata retrieval, listing, renditions, references, and versions
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AssetManagementService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class AssetManagementService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class AssetManagementService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Get comprehensive asset metadata
@@ -19,7 +16,7 @@ class AssetManagementService {
         try {
             this.logger.debug('Getting asset metadata', { assetPath });
             if (!assetPath) {
-                throw new errors_js_1.AEMException('Asset path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Asset path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -32,7 +29,7 @@ class AssetManagementService {
             // Get asset metadata
             const response = await this.client.get(`${assetPath}/jcr:content/metadata.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Asset not found: ${assetPath}`, 'NOT_FOUND_ERROR', false, undefined, { assetPath });
+                throw new AEMException(`Asset not found: ${assetPath}`, 'NOT_FOUND_ERROR', false, undefined, { assetPath });
             }
             const metadata = this.parseAssetMetadata(response.data);
             this.logger.debug('Successfully retrieved asset metadata', {
@@ -52,10 +49,10 @@ class AssetManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get asset metadata', error, { assetPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting asset metadata for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
+            throw new AEMException(`Unexpected error while getting asset metadata for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
         }
     }
     /**
@@ -113,7 +110,7 @@ class AssetManagementService {
             };
             const response = await this.client.get('/bin/querybuilder.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to list assets', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to list assets', 'SERVER_ERROR', true, undefined, { response });
             }
             const assets = this.parseAssetListResponse(response.data);
             this.logger.debug('Successfully listed assets', {
@@ -133,10 +130,10 @@ class AssetManagementService {
         }
         catch (error) {
             this.logger.error('Failed to list assets', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while listing assets', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while listing assets', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -146,7 +143,7 @@ class AssetManagementService {
         try {
             this.logger.debug('Getting asset renditions', { assetPath });
             if (!assetPath) {
-                throw new errors_js_1.AEMException('Asset path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Asset path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -159,7 +156,7 @@ class AssetManagementService {
             // Get asset renditions
             const response = await this.client.get(`${assetPath}/jcr:content/renditions.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Asset renditions not found: ${assetPath}`, 'NOT_FOUND_ERROR', false, undefined, { assetPath });
+                throw new AEMException(`Asset renditions not found: ${assetPath}`, 'NOT_FOUND_ERROR', false, undefined, { assetPath });
             }
             const renditions = this.parseRenditionsResponse(response.data, assetPath);
             this.logger.debug('Successfully retrieved asset renditions', {
@@ -179,10 +176,10 @@ class AssetManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get asset renditions', error, { assetPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting asset renditions for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
+            throw new AEMException(`Unexpected error while getting asset renditions for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
         }
     }
     /**
@@ -192,7 +189,7 @@ class AssetManagementService {
         try {
             this.logger.debug('Getting asset references', { assetPath });
             if (!assetPath) {
-                throw new errors_js_1.AEMException('Asset path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Asset path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -210,7 +207,7 @@ class AssetManagementService {
             };
             const response = await this.client.get('/bin/querybuilder.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to get asset references for ${assetPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to get asset references for ${assetPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const references = this.parseAssetReferencesResponse(response.data, assetPath);
             this.logger.debug('Successfully retrieved asset references', {
@@ -230,10 +227,10 @@ class AssetManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get asset references', error, { assetPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting asset references for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
+            throw new AEMException(`Unexpected error while getting asset references for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
         }
     }
     /**
@@ -243,7 +240,7 @@ class AssetManagementService {
         try {
             this.logger.debug('Getting asset versions', { assetPath });
             if (!assetPath) {
-                throw new errors_js_1.AEMException('Asset path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Asset path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -292,10 +289,10 @@ class AssetManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get asset versions', error, { assetPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting asset versions for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
+            throw new AEMException(`Unexpected error while getting asset versions for ${assetPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, assetPath });
         }
     }
     /**
@@ -457,5 +454,4 @@ class AssetManagementService {
         };
     }
 }
-exports.AssetManagementService = AssetManagementService;
 //# sourceMappingURL=asset-management-service.js.map

@@ -1,35 +1,146 @@
-"use strict";
 /**
  * Security middleware for AEMaaCS MCP servers
  * Implements request validation, rate limiting, and audit logging
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SecurityMiddleware = void 0;
-exports.createSecurityMiddleware = createSecurityMiddleware;
-exports.createSecurityMiddlewares = createSecurityMiddlewares;
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
-const validation_js_1 = require("../utils/validation.js");
-const logger_js_1 = require("../utils/logger.js");
-const index_js_1 = require("../config/index.js");
-const errors_js_1 = require("../utils/errors.js");
-const aem_js_1 = require("../types/aem.js");
-const crypto_1 = require("crypto");
-class SecurityMiddleware {
+import rateLimit from 'express-rate-limit';
+import { ValidationUtils } from '../utils/validation.js';
+import { Logger } from '../utils/logger.js';
+import { ConfigManager } from '../config/index.js';
+import { AEMException } from '../utils/errors.js';
+import { ErrorType } from '../types/aem.js';
+import { randomUUID } from 'crypto';
+export class SecurityMiddleware {
     constructor(options) {
-        this.logger = logger_js_1.Logger.getInstance();
-        const configManager = index_js_1.ConfigManager.getInstance();
+        this.logger = Logger.getInstance();
+        const configManager = ConfigManager.getInstance();
         const securityConfig = configManager.getSecurityConfig();
         this.config = {
             enableInputValidation: true,
             enableAuditLogging: true,
             enableRateLimit: true,
+            enableApiKeyAuth: true,
+            enableIPAllowlist: true,
             maxRequestSize: '10mb',
             allowedFileTypes: securityConfig.allowedFileTypes,
             maxFileSize: securityConfig.maxFileSize,
+            allowedIPs: securityConfig.allowedIPs || [],
+            apiKeys: securityConfig.apiKeys || [],
             ...options
+        };
+    }
+    /**
+     * API key validation middleware
+     */
+    validateApiKey() {
+        return (req, res, next) => {
+            if (!this.config.enableApiKeyAuth) {
+                return next();
+            }
+            const context = this.createOperationContext(req, 'api_key_validation');
+            try {
+                const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+                if (!apiKey) {
+                    this.logger.logSecurityEvent('Missing API key', context, {
+                        ip: req.ip,
+                        path: req.path,
+                        userAgent: req.get('User-Agent')
+                    });
+                    res.status(401).json({
+                        success: false,
+                        error: {
+                            code: 'MISSING_API_KEY',
+                            message: 'API key is required',
+                            recoverable: false
+                        }
+                    });
+                    return;
+                }
+                if (!this.config.apiKeys?.includes(apiKey)) {
+                    this.logger.logSecurityEvent('Invalid API key', context, {
+                        ip: req.ip,
+                        path: req.path,
+                        userAgent: req.get('User-Agent'),
+                        providedKey: apiKey.substring(0, 8) + '...' // Log partial key for debugging
+                    });
+                    res.status(401).json({
+                        success: false,
+                        error: {
+                            code: 'INVALID_API_KEY',
+                            message: 'Invalid API key',
+                            recoverable: false
+                        }
+                    });
+                    return;
+                }
+                next();
+            }
+            catch (error) {
+                this.logger.logSecurityEvent('API key validation error', context, {
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    ip: req.ip,
+                    path: req.path
+                });
+                res.status(500).json({
+                    success: false,
+                    error: {
+                        code: 'INTERNAL_ERROR',
+                        message: 'API key validation failed',
+                        recoverable: true
+                    }
+                });
+            }
+        };
+    }
+    /**
+     * IP allowlisting middleware
+     */
+    validateIPAllowlist() {
+        return (req, res, next) => {
+            if (!this.config.enableIPAllowlist) {
+                return next();
+            }
+            const context = this.createOperationContext(req, 'ip_allowlist_validation');
+            try {
+                const clientIP = this.getClientIP(req);
+                if (this.config.allowedIPs && this.config.allowedIPs.length > 0) {
+                    const isAllowed = this.config.allowedIPs.some(allowedIP => {
+                        return this.isIPAllowed(clientIP, allowedIP);
+                    });
+                    if (!isAllowed) {
+                        this.logger.logSecurityEvent('IP not in allowlist', context, {
+                            clientIP,
+                            path: req.path,
+                            userAgent: req.get('User-Agent'),
+                            allowedIPs: this.config.allowedIPs
+                        });
+                        res.status(403).json({
+                            success: false,
+                            error: {
+                                code: 'IP_NOT_ALLOWED',
+                                message: 'Access denied from this IP address',
+                                recoverable: false
+                            }
+                        });
+                        return;
+                    }
+                }
+                next();
+            }
+            catch (error) {
+                this.logger.logSecurityEvent('IP allowlist validation error', context, {
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    ip: req.ip,
+                    path: req.path
+                });
+                res.status(500).json({
+                    success: false,
+                    error: {
+                        code: 'INTERNAL_ERROR',
+                        message: 'IP validation failed',
+                        recoverable: true
+                    }
+                });
+            }
         };
     }
     /**
@@ -39,9 +150,9 @@ class SecurityMiddleware {
         if (!this.config.enableRateLimit) {
             return (_req, _res, next) => next();
         }
-        const configManager = index_js_1.ConfigManager.getInstance();
+        const configManager = ConfigManager.getInstance();
         const serverConfig = configManager.getServerConfig();
-        return (0, express_rate_limit_1.default)({
+        return rateLimit({
             windowMs: serverConfig.rateLimit.windowMs,
             max: serverConfig.rateLimit.maxRequests,
             message: {
@@ -85,11 +196,11 @@ class SecurityMiddleware {
                 const context = this.createOperationContext(req, 'input_validation');
                 // Validate and sanitize request body
                 if (req.body) {
-                    req.body = validation_js_1.ValidationUtils.sanitizeInput(req.body);
+                    req.body = ValidationUtils.sanitizeInput(req.body);
                 }
                 // Validate and sanitize query parameters
                 if (req.query) {
-                    req.query = validation_js_1.ValidationUtils.sanitizeInput(req.query);
+                    req.query = ValidationUtils.sanitizeInput(req.query);
                 }
                 // Validate paths in request
                 this.validateRequestPaths(req);
@@ -114,7 +225,7 @@ class SecurityMiddleware {
                     path: req.path,
                     method: req.method
                 });
-                if (error instanceof errors_js_1.AEMException) {
+                if (error instanceof AEMException) {
                     res.status(400).json({
                         success: false,
                         error: error.toAEMError()
@@ -124,7 +235,7 @@ class SecurityMiddleware {
                     res.status(400).json({
                         success: false,
                         error: {
-                            code: aem_js_1.ErrorType.VALIDATION_ERROR,
+                            code: ErrorType.VALIDATION_ERROR,
                             message: 'Input validation failed',
                             recoverable: false
                         }
@@ -142,12 +253,12 @@ class SecurityMiddleware {
             try {
                 // Check URL path
                 if (this.containsPathTraversal(req.path)) {
-                    throw new errors_js_1.AEMException('Path traversal attempt detected in URL', aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                    throw new AEMException('Path traversal attempt detected in URL', ErrorType.VALIDATION_ERROR, false);
                 }
                 // Check query parameters
                 for (const [key, value] of Object.entries(req.query)) {
                     if (typeof value === 'string' && this.containsPathTraversal(value)) {
-                        throw new errors_js_1.AEMException(`Path traversal attempt detected in query parameter: ${key}`, aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                        throw new AEMException(`Path traversal attempt detected in query parameter: ${key}`, ErrorType.VALIDATION_ERROR, false);
                     }
                 }
                 // Check request body paths
@@ -164,7 +275,7 @@ class SecurityMiddleware {
                     ip: req.ip,
                     userAgent: req.get('User-Agent')
                 });
-                if (error instanceof errors_js_1.AEMException) {
+                if (error instanceof AEMException) {
                     res.status(400).json({
                         success: false,
                         error: error.toAEMError()
@@ -174,7 +285,7 @@ class SecurityMiddleware {
                     res.status(400).json({
                         success: false,
                         error: {
-                            code: aem_js_1.ErrorType.VALIDATION_ERROR,
+                            code: ErrorType.VALIDATION_ERROR,
                             message: 'Invalid request detected',
                             recoverable: false
                         }
@@ -201,7 +312,7 @@ class SecurityMiddleware {
                 const duration = Date.now() - startTime;
                 const success = res.statusCode < 400;
                 // Log operation completion
-                logger_js_1.Logger.getInstance().logOperationComplete(req.method + ' ' + req.path, context, duration, success);
+                Logger.getInstance().logOperationComplete(req.method + ' ' + req.path, context, duration, success);
                 // Call original end method
                 return originalEnd(chunk, encoding, cb);
             };
@@ -227,7 +338,7 @@ class SecurityMiddleware {
                     res.status(413).json({
                         success: false,
                         error: {
-                            code: aem_js_1.ErrorType.VALIDATION_ERROR,
+                            code: ErrorType.VALIDATION_ERROR,
                             message: `Request size exceeds maximum limit (${this.config.maxRequestSize})`,
                             recoverable: false
                         }
@@ -262,7 +373,7 @@ class SecurityMiddleware {
                     userAgent: req.get('User-Agent'),
                     error: error instanceof Error ? error.message : 'Unknown error'
                 });
-                if (error instanceof errors_js_1.AEMException) {
+                if (error instanceof AEMException) {
                     res.status(400).json({
                         success: false,
                         error: error.toAEMError()
@@ -272,7 +383,7 @@ class SecurityMiddleware {
                     res.status(400).json({
                         success: false,
                         error: {
-                            code: aem_js_1.ErrorType.VALIDATION_ERROR,
+                            code: ErrorType.VALIDATION_ERROR,
                             message: 'Potentially malicious request detected',
                             recoverable: false
                         }
@@ -286,7 +397,7 @@ class SecurityMiddleware {
      */
     createOperationContext(req, operation) {
         return {
-            requestId: req.headers['x-request-id'] || (0, crypto_1.randomUUID)(),
+            requestId: req.headers['x-request-id'] || randomUUID(),
             userId: req.headers['x-user-id'],
             operation,
             resource: req.path,
@@ -302,9 +413,9 @@ class SecurityMiddleware {
         for (const param of pathParams) {
             const value = req.body?.[param] || req.query?.[param];
             if (value && typeof value === 'string') {
-                const result = validation_js_1.ValidationUtils.validatePath(value);
+                const result = ValidationUtils.validatePath(value);
                 if (!result.valid) {
-                    throw new errors_js_1.AEMException(`Invalid ${param}: ${result.errors?.join(', ')}`, aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                    throw new AEMException(`Invalid ${param}: ${result.errors?.join(', ')}`, ErrorType.VALIDATION_ERROR, false);
                 }
             }
         }
@@ -317,13 +428,13 @@ class SecurityMiddleware {
         const files = reqWithFiles.files || (reqWithFiles.file ? [reqWithFiles.file] : []);
         for (const file of Array.isArray(files) ? files : Object.values(files).flat()) {
             if (file && typeof file === 'object' && 'buffer' in file) {
-                const result = validation_js_1.ValidationUtils.validateFileUpload(file.buffer, {
+                const result = ValidationUtils.validateFileUpload(file.buffer, {
                     filename: file.originalname,
                     mimeType: file.mimetype,
                     size: file.size
                 });
                 if (!result.valid) {
-                    throw new errors_js_1.AEMException(`File validation failed: ${result.errors?.join(', ')}`, aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                    throw new AEMException(`File validation failed: ${result.errors?.join(', ')}`, ErrorType.VALIDATION_ERROR, false);
                 }
             }
         }
@@ -349,7 +460,7 @@ class SecurityMiddleware {
     checkObjectForPathTraversal(obj, path = '') {
         if (typeof obj === 'string') {
             if (this.containsPathTraversal(obj)) {
-                throw new errors_js_1.AEMException(`Path traversal attempt detected in ${path}`, aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                throw new AEMException(`Path traversal attempt detected in ${path}`, ErrorType.VALIDATION_ERROR, false);
             }
         }
         else if (typeof obj === 'object' && obj !== null) {
@@ -402,7 +513,7 @@ class SecurityMiddleware {
         const checkString = (str, location) => {
             for (const pattern of patterns) {
                 if (pattern.test(str)) {
-                    throw new errors_js_1.AEMException(`${attackType} pattern detected in ${location}`, aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                    throw new AEMException(`${attackType} pattern detected in ${location}`, ErrorType.VALIDATION_ERROR, false);
                 }
             }
         };
@@ -424,7 +535,7 @@ class SecurityMiddleware {
         if (typeof obj === 'string') {
             for (const pattern of patterns) {
                 if (pattern.test(obj)) {
-                    throw new errors_js_1.AEMException(`${attackType} pattern detected in ${path}`, aem_js_1.ErrorType.VALIDATION_ERROR, false);
+                    throw new AEMException(`${attackType} pattern detected in ${path}`, ErrorType.VALIDATION_ERROR, false);
                 }
             }
         }
@@ -453,20 +564,65 @@ class SecurityMiddleware {
         const unitMultiplier = units[unit || 'b'] || 1;
         return numValue * unitMultiplier;
     }
+    /**
+     * Get client IP address from request
+     */
+    getClientIP(req) {
+        return req.ip ||
+            req.connection.remoteAddress ||
+            req.socket.remoteAddress ||
+            req.connection?.socket?.remoteAddress ||
+            req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+            req.headers['x-real-ip']?.toString() ||
+            'unknown';
+    }
+    /**
+     * Check if client IP is allowed
+     */
+    isIPAllowed(clientIP, allowedIP) {
+        // Handle CIDR notation (e.g., 192.168.1.0/24)
+        if (allowedIP.includes('/')) {
+            return this.isIPInCIDR(clientIP, allowedIP);
+        }
+        // Handle exact match
+        return clientIP === allowedIP;
+    }
+    /**
+     * Check if IP is within CIDR range
+     */
+    isIPInCIDR(ip, cidr) {
+        try {
+            const [network, prefixLength] = cidr.split('/');
+            const ipNum = this.ipToNumber(ip);
+            const networkNum = this.ipToNumber(network);
+            const mask = (0xffffffff << (32 - parseInt(prefixLength))) >>> 0;
+            return (ipNum & mask) === (networkNum & mask);
+        }
+        catch {
+            return false;
+        }
+    }
+    /**
+     * Convert IP address to number
+     */
+    ipToNumber(ip) {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+    }
 }
-exports.SecurityMiddleware = SecurityMiddleware;
 /**
  * Factory function to create security middleware with default configuration
  */
-function createSecurityMiddleware(options) {
+export function createSecurityMiddleware(options) {
     return new SecurityMiddleware(options);
 }
 /**
  * Express middleware factory functions
  */
-function createSecurityMiddlewares(options) {
+export function createSecurityMiddlewares(options) {
     const security = new SecurityMiddleware(options);
     return {
+        validateApiKey: security.validateApiKey(),
+        validateIPAllowlist: security.validateIPAllowlist(),
         rateLimit: security.createRateLimitMiddleware(),
         validateInput: security.validateInput(),
         preventPathTraversal: security.preventPathTraversal(),

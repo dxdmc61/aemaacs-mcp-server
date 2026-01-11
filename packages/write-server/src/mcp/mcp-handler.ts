@@ -3,9 +3,9 @@
  * Handles MCP tool discovery, schema generation, and tool execution for write operations
  */
 
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 
 // Import all write services
 import { PackageService } from '../services/package-service.js';
@@ -1072,9 +1072,11 @@ export class MCPHandler {
           result = await this.services.pageOperations.createPage(
             args.parentPath,
             args.pageName,
-            args.title,
-            args.template,
-            { properties: args.properties }
+            { 
+              template: args.template,
+              title: args.title,
+              properties: args.properties 
+            }
           );
           break;
         case 'aem_copy_page':
@@ -1173,14 +1175,15 @@ export class MCPHandler {
 
         // User Administration
         case 'aem_create_user':
-          result = await this.services.userAdministration.createUser(args.userId, {
-            password: args.password,
-            profile: args.profile
-          });
+          result = await this.services.userAdministration.createUser(
+            args.userId, 
+            args.password, 
+            { profile: args.profile }
+          );
           break;
         case 'aem_create_group':
           result = await this.services.userAdministration.createGroup(args.groupId, {
-            description: args.description
+            profile: { description: args.description }
           });
           break;
         case 'aem_add_user_to_group':

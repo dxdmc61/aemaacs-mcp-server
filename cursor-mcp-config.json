@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "aemaacs-read-server": {
+      "command": "node",
+      "args": ["packages/read-server/dist/index.js", "--stdio"],
+      "cwd": "."
+    },
+    "aemaacs-write-server": {
+      "command": "node",
+      "args": ["packages/write-server/dist/index.js", "--stdio"],
+      "cwd": "."
+    }
+  }
+}
+

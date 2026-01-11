@@ -3,10 +3,10 @@
  * Handles template discovery, component usage analysis, and dependency tracking
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface Template {
   path: string;
@@ -554,7 +554,7 @@ export class TemplateComponentManagementService {
 
         componentUsages.push(usage);
       } catch (error) {
-        this.logger.warn('Failed to process component usage', error as Error, { componentPath: hit.path });
+        this.logger.warn('Failed to process component usage', { componentPath: hit.path, error: (error as Error).message });
       }
     }
 
@@ -575,7 +575,7 @@ export class TemplateComponentManagementService {
 
         dependencies.push(componentDeps);
       } catch (error) {
-        this.logger.warn('Failed to process component dependencies', error as Error, { componentPath: hit.path });
+        this.logger.warn('Failed to process component dependencies', { componentPath: hit.path, error: (error as Error).message });
       }
     }
 
@@ -653,7 +653,7 @@ export class TemplateComponentManagementService {
         }));
       }
     } catch (error) {
-      this.logger.warn('Failed to find component usage pages', error as Error, { componentPath });
+      this.logger.warn('Failed to find component usage pages', { componentPath, error: (error as Error).message });
     }
 
     return [];
@@ -697,7 +697,7 @@ export class TemplateComponentManagementService {
         }
       }
     } catch (error) {
-      this.logger.warn('Failed to analyze component dependencies', error as Error, { componentPath });
+      this.logger.warn('Failed to analyze component dependencies', { componentPath, error: (error as Error).message });
     }
 
     return {
@@ -728,7 +728,7 @@ export class TemplateComponentManagementService {
         return hits.map((hit: any) => hit.path);
       }
     } catch (error) {
-      this.logger.warn('Failed to find template usage pages', error as Error, { templatePath });
+      this.logger.warn('Failed to find template usage pages', { templatePath, error: (error as Error).message });
     }
 
     return [];

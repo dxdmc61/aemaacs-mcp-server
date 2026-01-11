@@ -36,9 +36,13 @@ export interface ServerSettings {
 export interface SecurityConfig {
   enableInputValidation: boolean;
   enableAuditLogging: boolean;
+  enableApiKeyAuth?: boolean;
+  enableIPAllowlist?: boolean;
   maxRequestSize: string;
   allowedFileTypes: string[];
   maxFileSize: number;
+  allowedIPs?: string[];
+  apiKeys?: string[];
 }
 
 export interface LoggingConfig {
@@ -60,6 +64,7 @@ export interface CacheConfig {
   enabled: boolean;
   ttl: number;
   maxSize: number;
+  maxMemory?: number;
   strategy: 'lru' | 'lfu' | 'ttl';
   redis?: {
     host: string;
@@ -85,12 +90,13 @@ const configSchema = Joi.object({
     timeout: Joi.number().positive().default(30000),
     retryAttempts: Joi.number().integer().min(0).max(10).default(3),
     authentication: Joi.object({
-      type: Joi.string().valid('basic', 'oauth', 'service-account').required(),
-      username: Joi.string().when('type', { is: 'basic', then: Joi.required() }),
-      password: Joi.string().when('type', { is: 'basic', then: Joi.required() }),
-      clientId: Joi.string().when('type', { is: Joi.valid('oauth', 'service-account'), then: Joi.required() }),
-      clientSecret: Joi.string().when('type', { is: Joi.valid('oauth', 'service-account'), then: Joi.required() }),
-      privateKey: Joi.string().when('type', { is: 'service-account', then: Joi.optional() }),
+      type: Joi.string().valid('basic', 'oauth', 'service-account', 'token').required(),
+      username: Joi.string().when('type', { is: 'basic', then: Joi.required(), otherwise: Joi.optional() }),
+      password: Joi.string().when('type', { is: 'basic', then: Joi.required(), otherwise: Joi.optional() }),
+      // OAuth and service-account require clientId/clientSecret ONLY if accessToken is not provided
+      clientId: Joi.string().optional(),
+      clientSecret: Joi.string().optional(),
+      privateKey: Joi.string().optional(),
       accessToken: Joi.string().optional()
     }).required()
   }).required(),
@@ -288,6 +294,13 @@ export class ConfigManager {
           type: 'basic',
           username: process.env.AEM_USERNAME || '',
           password: process.env.AEM_PASSWORD || ''
+        };
+      case 'token':
+        // Direct token authentication (for development or browser session tokens)
+        return {
+          type: 'token', // Use dedicated token type - no OAuth refresh needed
+          accessToken: process.env.AEM_ACCESS_TOKEN || '',
+          cookies: process.env.AEM_COOKIES // Full cookie string from browser session
         };
       case 'oauth':
         return {

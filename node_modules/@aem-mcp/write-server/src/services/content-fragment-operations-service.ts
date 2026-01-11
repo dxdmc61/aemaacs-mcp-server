@@ -3,10 +3,10 @@
  * Handles content fragment creation, updating, and deletion
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface CreateContentFragmentOptions {
   model: string;
@@ -391,11 +391,11 @@ export class ContentFragmentOperationsService {
         }
       };
 
-      const response = await this.client.delete<any>(
-        `/api/assets${fragmentPath}`,
-        params,
-        requestOptions
-      );
+      // Build URL with query params
+      const queryString = new URLSearchParams(params as Record<string, string>).toString();
+      const url = `/api/assets${fragmentPath}${queryString ? '?' + queryString : ''}`;
+      
+      const response = await this.client.delete<any>(url, requestOptions);
 
       if (!response.success || !response.data) {
         throw new AEMException(
@@ -719,12 +719,12 @@ export class ContentFragmentOperationsService {
       };
 
       // Use QueryBuilder to find all content fragment models
-      const query = {
-        type: 'nt:unstructured',
-        path: confPath,
-        property: 'jcr:primaryType',
-        property.value: 'nt:unstructured',
-        p.limit: '-1'
+      const query: Record<string, string> = {
+        'type': 'nt:unstructured',
+        'path': confPath,
+        'property': 'jcr:primaryType',
+        'property.value': 'nt:unstructured',
+        'p.limit': '-1'
       };
 
       const response = await this.client.get<any>(
@@ -751,7 +751,7 @@ export class ContentFragmentOperationsService {
               models.push(model.data);
             }
           } catch (error) {
-            this.logger.warn('Failed to parse content fragment model', error as Error, { path: hit.path });
+            this.logger.warn('Failed to parse content fragment model', { path: hit.path, error: (error as Error).message });
           }
         }
       }
@@ -998,11 +998,7 @@ export class ContentFragmentOperationsService {
         }
       };
 
-      const response = await this.client.delete<any>(
-        variationPath,
-        {},
-        requestOptions
-      );
+      const response = await this.client.delete<any>(variationPath, requestOptions);
 
       if (!response.success || !response.data) {
         throw new AEMException(
@@ -1160,12 +1156,12 @@ export class ContentFragmentOperationsService {
       const referencedBy: ContentFragmentReference[] = [];
 
       // Get outgoing references (what this fragment references)
-      const outgoingQuery = {
-        type: 'nt:unstructured',
-        path: fragmentPath,
-        property: 'value',
-        property.value: '*',
-        p.limit: '-1'
+      const outgoingQuery: Record<string, string> = {
+        'type': 'nt:unstructured',
+        'path': fragmentPath,
+        'property': 'value',
+        'property.value': '*',
+        'p.limit': '-1'
       };
 
       const outgoingResponse = await this.client.get<any>(
@@ -1192,12 +1188,12 @@ export class ContentFragmentOperationsService {
       }
 
       // Get incoming references (what references this fragment)
-      const incomingQuery = {
-        type: 'nt:unstructured',
-        path: '/content',
-        property: 'value',
-        property.value: fragmentPath,
-        p.limit: '-1'
+      const incomingQuery: Record<string, string> = {
+        'type': 'nt:unstructured',
+        'path': '/content',
+        'property': 'value',
+        'property.value': fragmentPath,
+        'p.limit': '-1'
       };
 
       const incomingResponse = await this.client.get<any>(

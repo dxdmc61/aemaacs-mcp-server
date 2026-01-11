@@ -1,19 +1,16 @@
-"use strict";
 /**
  * Circuit breaker pattern implementation for AEMaaCS operations
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CircuitBreakerRegistry = exports.CircuitBreaker = exports.CircuitState = void 0;
-const logger_js_1 = require("./logger.js");
-const errors_js_1 = require("./errors.js");
-const aem_js_1 = require("../types/aem.js");
-var CircuitState;
+import { Logger } from './logger.js';
+import { AEMException } from './errors.js';
+import { ErrorType } from '../types/aem.js';
+export var CircuitState;
 (function (CircuitState) {
     CircuitState["CLOSED"] = "CLOSED";
     CircuitState["OPEN"] = "OPEN";
     CircuitState["HALF_OPEN"] = "HALF_OPEN";
-})(CircuitState || (exports.CircuitState = CircuitState = {}));
-class CircuitBreaker {
+})(CircuitState || (CircuitState = {}));
+export class CircuitBreaker {
     constructor(name, config) {
         this.name = name;
         this.config = config;
@@ -21,12 +18,12 @@ class CircuitBreaker {
         this.failureCount = 0;
         this.successCount = 0;
         this.totalRequests = 0;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
         const defaultConfig = {
             failureThreshold: 5,
             recoveryTimeout: 60000, // 1 minute
             monitoringPeriod: 300000, // 5 minutes
-            expectedErrors: [aem_js_1.ErrorType.NETWORK_ERROR, aem_js_1.ErrorType.TIMEOUT_ERROR, aem_js_1.ErrorType.SERVER_ERROR]
+            expectedErrors: [ErrorType.NETWORK_ERROR, ErrorType.TIMEOUT_ERROR, ErrorType.SERVER_ERROR]
         };
         this.config = { ...defaultConfig, ...config };
     }
@@ -42,7 +39,7 @@ class CircuitBreaker {
                 this.logger.info(`Circuit breaker ${this.name} transitioning to HALF_OPEN`);
             }
             else {
-                const error = new errors_js_1.AEMException(`Circuit breaker ${this.name} is OPEN. Next attempt at ${this.nextAttemptTime?.toISOString()}`, aem_js_1.ErrorType.SERVER_ERROR, true, this.getTimeUntilNextAttempt());
+                const error = new AEMException(`Circuit breaker ${this.name} is OPEN. Next attempt at ${this.nextAttemptTime?.toISOString()}`, ErrorType.SERVER_ERROR, true, this.getTimeUntilNextAttempt());
                 this.logger.warn(`Circuit breaker ${this.name} rejected request - circuit is OPEN`);
                 throw error;
             }
@@ -121,7 +118,7 @@ class CircuitBreaker {
         }
     }
     isExpectedError(error) {
-        if (error instanceof errors_js_1.AEMException) {
+        if (error instanceof AEMException) {
             return this.config.expectedErrors?.includes(error.code) || false;
         }
         // Check for common network errors
@@ -141,11 +138,10 @@ class CircuitBreaker {
         return Math.max(0, this.nextAttemptTime.getTime() - Date.now());
     }
 }
-exports.CircuitBreaker = CircuitBreaker;
 /**
  * Circuit breaker registry for managing multiple circuit breakers
  */
-class CircuitBreakerRegistry {
+export class CircuitBreakerRegistry {
     constructor() {
         this.breakers = new Map();
     }
@@ -200,5 +196,4 @@ class CircuitBreakerRegistry {
         this.breakers.clear();
     }
 }
-exports.CircuitBreakerRegistry = CircuitBreakerRegistry;
 //# sourceMappingURL=circuit-breaker.js.map

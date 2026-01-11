@@ -1,23 +1,17 @@
-"use strict";
 /**
  * HTTP REST API Handler for Read Server
  * Provides JSON-RPC 2.0 compliant endpoints for AEM read operations
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HTTPHandler = void 0;
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const mcp_handler_js_1 = require("../mcp/mcp-handler.js");
-class HTTPHandler {
+import express from 'express';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import { Logger } from '@aemaacs-mcp/shared';
+import { MCPHandler } from '../mcp/mcp-handler.js';
+export class HTTPHandler {
     constructor(client, config) {
-        this.app = (0, express_1.default)();
-        this.logger = logger_js_1.Logger.getInstance();
-        this.mcpHandler = new mcp_handler_js_1.MCPHandler(client);
+        this.app = express();
+        this.logger = Logger.getInstance();
+        this.mcpHandler = new MCPHandler(client);
         this.config = config;
         this.setupMiddleware();
         this.setupRoutes();
@@ -28,7 +22,7 @@ class HTTPHandler {
     setupMiddleware() {
         // CORS
         if (this.config.server.cors.enabled) {
-            this.app.use((0, cors_1.default)({
+            this.app.use(cors({
                 origin: this.config.server.cors.origins.includes('*')
                     ? true
                     : this.config.server.cors.origins,
@@ -37,7 +31,7 @@ class HTTPHandler {
         }
         // Rate limiting
         if (this.config.server.rateLimit.enabled) {
-            const limiter = (0, express_rate_limit_1.default)({
+            const limiter = rateLimit({
                 windowMs: this.config.server.rateLimit.windowMs,
                 max: this.config.server.rateLimit.maxRequests,
                 message: {
@@ -54,8 +48,8 @@ class HTTPHandler {
             this.app.use(limiter);
         }
         // Body parsing
-        this.app.use(express_1.default.json({ limit: '10mb' }));
-        this.app.use(express_1.default.urlencoded({ extended: true }));
+        this.app.use(express.json({ limit: '10mb' }));
+        this.app.use(express.urlencoded({ extended: true }));
         // Request logging
         this.app.use((req, res, next) => {
             this.logger.debug('HTTP request received', {
@@ -146,7 +140,7 @@ class HTTPHandler {
         // Check API key
         if (this.config.security.apiKeys && this.config.security.apiKeys.length > 0) {
             if (!apiKey || !this.config.security.apiKeys.includes(apiKey)) {
-                return res.status(401).json({
+                res.status(401).json({
                     jsonrpc: '2.0',
                     error: {
                         code: -32001,
@@ -154,11 +148,12 @@ class HTTPHandler {
                     },
                     id: null
                 });
+                return;
             }
         }
         // Check allowed IPs
         if (this.config.security.allowedIPs && this.config.security.allowedIPs.length > 0) {
-            const isAllowed = this.config.security.allowedIPs.some(allowedIP => {
+            const isAllowed = this.config.security.allowedIPs.some((allowedIP) => {
                 if (allowedIP.includes('/')) {
                     // CIDR notation - simplified check
                     return clientIP?.startsWith(allowedIP.split('/')[0]);
@@ -166,7 +161,7 @@ class HTTPHandler {
                 return clientIP === allowedIP;
             });
             if (!isAllowed) {
-                return res.status(403).json({
+                res.status(403).json({
                     jsonrpc: '2.0',
                     error: {
                         code: -32002,
@@ -174,6 +169,7 @@ class HTTPHandler {
                     },
                     id: null
                 });
+                return;
             }
         }
         next();
@@ -186,7 +182,7 @@ class HTTPHandler {
             const request = req.body;
             // Validate JSON-RPC format
             if (!request || request.jsonrpc !== '2.0' || !request.method) {
-                return res.status(400).json({
+                res.status(400).json({
                     jsonrpc: '2.0',
                     error: {
                         code: -32600,
@@ -194,6 +190,7 @@ class HTTPHandler {
                     },
                     id: request?.id || null
                 });
+                return;
             }
             let response;
             switch (request.method) {
@@ -314,19 +311,20 @@ class HTTPHandler {
     async handleToolCall(req, res) {
         try {
             const toolName = req.params.toolName;
-            const arguments = req.body || {};
+            const toolArgs = req.body || {};
             const mcpRequest = {
                 method: 'tools/call',
                 params: {
                     name: toolName,
-                    arguments
+                    arguments: toolArgs
                 }
             };
             const mcpResponse = await this.mcpHandler.executeTool(mcpRequest);
             if (mcpResponse.isError) {
-                return res.status(400).json({
+                res.status(400).json({
                     error: mcpResponse.content?.[0]?.text || 'Tool execution failed'
                 });
+                return;
             }
             // Parse and return the result
             try {
@@ -388,5 +386,4 @@ class HTTPHandler {
         });
     }
 }
-exports.HTTPHandler = HTTPHandler;
 //# sourceMappingURL=http-handler.js.map

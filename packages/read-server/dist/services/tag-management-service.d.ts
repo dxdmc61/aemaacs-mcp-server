@@ -2,8 +2,8 @@
  * Tag Management Service for AEMaaCS read operations
  * Handles tag namespace discovery, tag hierarchy, and tagged content discovery
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Tag } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse, Tag } from '@aemaacs-mcp/shared';
 export interface TagNamespace {
     id: string;
     path: string;

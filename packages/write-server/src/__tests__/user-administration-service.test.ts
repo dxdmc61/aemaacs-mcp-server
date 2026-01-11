@@ -3,8 +3,8 @@
  */
 
 import { UserAdministrationService, UserProfile, CreateUserOptions, CreateGroupOptions, UserOperationResult, GroupOperationResult, MembershipResult } from '../services/user-administration-service.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 // Mock the AEM HTTP Client
 jest.mock('../../../shared/src/client/aem-http-client.js');

@@ -1,14 +1,11 @@
-"use strict";
 /**
  * Server Configuration Management
  * Handles configuration loading, validation, and environment variable support
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConfigManager = void 0;
-const logger_js_1 = require("../utils/logger.js");
-class ConfigManager {
+import { Logger } from '../utils/logger.js';
+export class ConfigManager {
     constructor() {
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     static getInstance() {
         if (!ConfigManager.instance) {
@@ -105,11 +102,11 @@ class ConfigManager {
             host,
             port: this.getEnvNumber('AEM_PORT', 4502),
             protocol: this.getEnvString('AEM_PROTOCOL', 'https'),
-            username: this.getEnvString('AEM_USERNAME'),
-            password: this.getEnvString('AEM_PASSWORD'),
-            clientId: this.getEnvString('AEM_CLIENT_ID'),
-            clientSecret: this.getEnvString('AEM_CLIENT_SECRET'),
-            accessToken: this.getEnvString('AEM_ACCESS_TOKEN'),
+            username: process.env.AEM_USERNAME,
+            password: process.env.AEM_PASSWORD,
+            clientId: process.env.AEM_CLIENT_ID,
+            clientSecret: process.env.AEM_CLIENT_SECRET,
+            accessToken: process.env.AEM_ACCESS_TOKEN,
             timeout: this.getEnvNumber('AEM_TIMEOUT', 30000),
             retryAttempts: this.getEnvNumber('AEM_RETRY_ATTEMPTS', 3),
             retryDelay: this.getEnvNumber('AEM_RETRY_DELAY', 1000)
@@ -122,7 +119,7 @@ class ConfigManager {
         return {
             level: this.getEnvString('LOG_LEVEL', 'info'),
             format: this.getEnvString('LOG_FORMAT', 'json'),
-            file: this.getEnvString('LOG_FILE')
+            file: process.env.LOG_FILE
         };
     }
     /**
@@ -223,5 +220,4 @@ class ConfigManager {
         return value.split(',').map(item => item.trim()).filter(item => item.length > 0);
     }
 }
-exports.ConfigManager = ConfigManager;
 //# sourceMappingURL=server-config.js.map

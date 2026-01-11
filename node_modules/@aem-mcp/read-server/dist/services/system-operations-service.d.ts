@@ -2,8 +2,8 @@
  * System Operations Service for AEMaaCS read operations
  * Handles async jobs, system health, system info, bundle status, and log files
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface AsyncJob {
     id: string;
     topic: string;

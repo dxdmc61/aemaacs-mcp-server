@@ -2,8 +2,8 @@
  * Package Service for AEMaaCS read operations
  * Handles package listing, information retrieval, and status checking
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Package } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse, Package } from '@aemaacs-mcp/shared';
 export interface PackageInfo extends Package {
     description?: string;
     dependencies?: string[];

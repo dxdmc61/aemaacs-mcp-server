@@ -3,9 +3,9 @@
  */
 
 import { TemplateSiteService, Site, LanguageMaster, Locale, Template, TemplateStructure } from '../services/template-site-service.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 // Mock the AEM HTTP Client
 jest.mock('../../../shared/src/client/aem-http-client.js');

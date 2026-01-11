@@ -49,18 +49,26 @@ export class Logger {
     const transports: winston.transport[] = [];
 
     // Console transport
+    // In STDIO mode (MCP), logs must go to stderr to avoid interfering with JSON-RPC protocol on stdout
+    const isStdioMode = process.argv.includes('--stdio');
+    
     if (config.console.enabled) {
-      transports.push(
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            config.console.colorize ? winston.format.colorize() : winston.format.uncolorize(),
-            config.format === 'json' 
-              ? winston.format.json()
-              : winston.format.simple()
-          )
-        })
-      );
+      const consoleTransportOptions: any = {
+        format: winston.format.combine(
+          winston.format.timestamp(),
+          config.console.colorize ? winston.format.colorize() : winston.format.uncolorize(),
+          config.format === 'json' 
+            ? winston.format.json()
+            : winston.format.simple()
+        )
+      };
+      
+      // In STDIO mode, redirect all logs to stderr
+      if (isStdioMode) {
+        consoleTransportOptions.stderrLevels = ['error', 'warn', 'info', 'debug', 'verbose', 'silly'];
+      }
+      
+      transports.push(new winston.transports.Console(consoleTransportOptions));
     }
 
     // File transport

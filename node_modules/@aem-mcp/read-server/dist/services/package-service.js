@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Package Service for AEMaaCS read operations
  * Handles package listing, information retrieval, and status checking
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PackageService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class PackageService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class PackageService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * List all packages using /crx/packmgr/list.jsp endpoint
@@ -38,7 +35,7 @@ class PackageService {
             };
             const response = await this.client.get('/crx/packmgr/list.jsp', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to retrieve package list', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to retrieve package list', 'SERVER_ERROR', true, undefined, { response });
             }
             // Parse the package list response
             const packages = this.parsePackageListResponse(response.data);
@@ -69,10 +66,10 @@ class PackageService {
         }
         catch (error) {
             this.logger.error('Failed to list packages', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while listing packages', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while listing packages', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -82,7 +79,7 @@ class PackageService {
         try {
             this.logger.debug('Getting package info', { packagePath });
             if (!packagePath) {
-                throw new errors_js_1.AEMException('Package path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Package path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -95,7 +92,7 @@ class PackageService {
             // Get package details from the package manager
             const response = await this.client.get(`/crx/packmgr/service/.json${packagePath}`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Package not found: ${packagePath}`, 'NOT_FOUND_ERROR', false, undefined, { packagePath });
+                throw new AEMException(`Package not found: ${packagePath}`, 'NOT_FOUND_ERROR', false, undefined, { packagePath });
             }
             const packageInfo = this.parsePackageInfoResponse(response.data, packagePath);
             this.logger.debug('Successfully retrieved package info', {
@@ -116,10 +113,10 @@ class PackageService {
         }
         catch (error) {
             this.logger.error('Failed to get package info', error, { packagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting package info for ${packagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, packagePath });
+            throw new AEMException(`Unexpected error while getting package info for ${packagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, packagePath });
         }
     }
     /**
@@ -129,7 +126,7 @@ class PackageService {
         try {
             this.logger.debug('Getting package status', { packagePath });
             if (!packagePath) {
-                throw new errors_js_1.AEMException('Package path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Package path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -142,7 +139,7 @@ class PackageService {
             // Get package status from the package manager
             const response = await this.client.get(`/crx/packmgr/service/.json${packagePath}`, { cmd: 'status' }, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Package status not available: ${packagePath}`, 'NOT_FOUND_ERROR', false, undefined, { packagePath });
+                throw new AEMException(`Package status not available: ${packagePath}`, 'NOT_FOUND_ERROR', false, undefined, { packagePath });
             }
             const packageStatus = this.parsePackageStatusResponse(response.data, packagePath);
             this.logger.debug('Successfully retrieved package status', {
@@ -162,10 +159,10 @@ class PackageService {
         }
         catch (error) {
             this.logger.error('Failed to get package status', error, { packagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting package status for ${packagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, packagePath });
+            throw new AEMException(`Unexpected error while getting package status for ${packagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, packagePath });
         }
     }
     /**
@@ -392,5 +389,4 @@ class PackageService {
         });
     }
 }
-exports.PackageService = PackageService;
 //# sourceMappingURL=package-service.js.map

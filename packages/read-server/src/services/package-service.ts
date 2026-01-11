@@ -3,10 +3,10 @@
  * Handles package listing, information retrieval, and status checking
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Package, ErrorType } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse, Package, ErrorType } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface PackageInfo extends Package {
     description?: string;

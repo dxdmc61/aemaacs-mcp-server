@@ -3,10 +3,10 @@
  * Handles asset metadata retrieval, listing, renditions, references, and versions
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Asset, AssetMetadata, Rendition } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse, Asset, AssetMetadata, Rendition } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface AssetMetadataExtended extends AssetMetadata {
   'dc:title'?: string;

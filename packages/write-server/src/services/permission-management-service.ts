@@ -3,10 +3,10 @@
  * Handles ACL reading, permission validation, and effective permissions calculation
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface ACL {
   path: string;
@@ -344,7 +344,7 @@ export class PermissionManagementService {
 
       const effectivePermissions = effectivePermissionsResponse.data;
       const hasPermission = effectivePermissions.permissions.some(
-        perm => perm.privilege === privilege && perm.granted
+        (perm: any) => perm.privilege === privilege && perm.granted
       );
 
       this.logger.debug('Successfully checked permission', { 
@@ -409,7 +409,7 @@ export class PermissionManagementService {
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           errors.push(`Failed to get permissions for ${path}: ${errorMessage}`);
-          this.logger.warn('Failed to get permissions for path', error as Error, { principal, path });
+          this.logger.warn('Failed to get permissions for path', { principal, path, error: (error as Error).message });
         }
       }
 

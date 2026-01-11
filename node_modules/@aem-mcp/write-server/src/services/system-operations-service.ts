@@ -3,10 +3,10 @@
  * Handles ACL configuration, async job management, and JCR property manipulation
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface ACLEntry {
   principal: string;
@@ -115,9 +115,10 @@ export class SystemOperationsService {
           failedEntries++;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           errors.push(`Failed to apply ACL for principal ${entry.principal}: ${errorMessage}`);
-          this.logger.warn('Failed to apply ACL entry', error as Error, { 
+          this.logger.warn('Failed to apply ACL entry', { 
             path: config.path, 
-            principal: entry.principal 
+            principal: entry.principal,
+            error: (error as Error).message
           });
         }
       }
@@ -249,7 +250,7 @@ export class SystemOperationsService {
    */
   async manipulateJCRProperty(operation: JCRPropertyOperation): Promise<AEMResponse<PropertyResult>> {
     try {
-      this.logger.debug('Manipulating JCR property', { operation });
+      this.logger.debug('Manipulating JCR property', { operation: 'manipulateJCRProperty', path: operation.path, property: operation.property });
 
       if (!operation.path || !operation.property) {
         throw new AEMException(

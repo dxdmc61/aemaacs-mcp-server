@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Content Operations Service for AEMaaCS write operations
  * Handles content creation, folder operations, file uploads, and property management
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContentOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class ContentOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class ContentOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Create a folder in the JCR repository
@@ -19,11 +16,11 @@ class ContentOperationsService {
         try {
             this.logger.debug('Creating folder', { parentPath, folderName, options });
             if (!parentPath || !folderName) {
-                throw new errors_js_1.AEMException('Parent path and folder name are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Parent path and folder name are required', 'VALIDATION_ERROR', false);
             }
             // Validate folder name
             if (!this.isValidNodeName(folderName)) {
-                throw new errors_js_1.AEMException('Invalid folder name. Names must not contain special characters', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid folder name. Names must not contain special characters', 'VALIDATION_ERROR', false);
             }
             const folderPath = `${parentPath}/${folderName}`;
             const formData = new FormData();
@@ -60,7 +57,7 @@ class ContentOperationsService {
             };
             const response = await this.client.post(folderPath, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to create folder: ${folderName}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to create folder: ${folderName}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -81,10 +78,10 @@ class ContentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to create folder', error, { parentPath, folderName });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while creating folder: ${folderName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, folderName });
+            throw new AEMException(`Unexpected error while creating folder: ${folderName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, folderName });
         }
     }
     /**
@@ -103,7 +100,7 @@ class ContentOperationsService {
         try {
             this.logger.debug('Copying folder', { sourcePath, destinationPath, options });
             if (!sourcePath || !destinationPath) {
-                throw new errors_js_1.AEMException('Source path and destination path are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Source path and destination path are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append(':operation', 'copy');
@@ -125,7 +122,7 @@ class ContentOperationsService {
             };
             const response = await this.client.post(sourcePath, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to copy folder from ${sourcePath} to ${destinationPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to copy folder from ${sourcePath} to ${destinationPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -145,10 +142,10 @@ class ContentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to copy folder', error, { sourcePath, destinationPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while copying folder from ${sourcePath} to ${destinationPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, sourcePath, destinationPath });
+            throw new AEMException(`Unexpected error while copying folder from ${sourcePath} to ${destinationPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, sourcePath, destinationPath });
         }
     }
     /**
@@ -158,11 +155,11 @@ class ContentOperationsService {
         try {
             this.logger.debug('Uploading file', { parentPath, fileName, options });
             if (!parentPath || !fileName || !fileContent) {
-                throw new errors_js_1.AEMException('Parent path, file name, and file content are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Parent path, file name, and file content are required', 'VALIDATION_ERROR', false);
             }
             // Validate file name
             if (!this.isValidNodeName(fileName)) {
-                throw new errors_js_1.AEMException('Invalid file name. Names must not contain special characters', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid file name. Names must not contain special characters', 'VALIDATION_ERROR', false);
             }
             const filePath = `${parentPath}/${fileName}`;
             const mimeType = options.mimeType || this.detectMimeType(fileName);
@@ -200,7 +197,7 @@ class ContentOperationsService {
             };
             const response = await this.client.post(filePath, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to upload file: ${fileName}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to upload file: ${fileName}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -223,10 +220,10 @@ class ContentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to upload file', error, { parentPath, fileName });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while uploading file: ${fileName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, fileName });
+            throw new AEMException(`Unexpected error while uploading file: ${fileName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, fileName });
         }
     }
     /**
@@ -236,7 +233,7 @@ class ContentOperationsService {
         try {
             this.logger.debug('Updating properties', { nodePath, properties, options });
             if (!nodePath || !properties) {
-                throw new errors_js_1.AEMException('Node path and properties are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Node path and properties are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             const updatedProperties = [];
@@ -287,7 +284,7 @@ class ContentOperationsService {
             };
             const response = await this.client.post(nodePath, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to update properties for: ${nodePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to update properties for: ${nodePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -313,10 +310,10 @@ class ContentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to update properties', error, { nodePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while updating properties for: ${nodePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, nodePath });
+            throw new AEMException(`Unexpected error while updating properties for: ${nodePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, nodePath });
         }
     }
     /**
@@ -326,11 +323,11 @@ class ContentOperationsService {
         try {
             this.logger.debug('Deleting content', { contentPath, options });
             if (!contentPath) {
-                throw new errors_js_1.AEMException('Content path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Content path is required', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent deletion of system paths
             if (this.isSystemPath(contentPath)) {
-                throw new errors_js_1.AEMException(`Cannot delete system path: ${contentPath}`, 'VALIDATION_ERROR', false);
+                throw new AEMException(`Cannot delete system path: ${contentPath}`, 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append(':operation', 'delete');
@@ -348,7 +345,7 @@ class ContentOperationsService {
             };
             const response = await this.client.post(contentPath, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to delete content: ${contentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete content: ${contentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -368,10 +365,10 @@ class ContentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to delete content', error, { contentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting content: ${contentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, contentPath });
+            throw new AEMException(`Unexpected error while deleting content: ${contentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, contentPath });
         }
     }
     /**
@@ -381,7 +378,7 @@ class ContentOperationsService {
         try {
             this.logger.debug('Reindexing content', { contentPath, options });
             if (!contentPath) {
-                throw new errors_js_1.AEMException('Content path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Content path is required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('path', contentPath);
@@ -402,7 +399,7 @@ class ContentOperationsService {
             };
             const response = await this.client.post('/system/console/jmx/org.apache.jackrabbit.oak%3Aname%3DLucene%20Index%2Ctype%3DLuceneIndex/op/reindex', formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to reindex content: ${contentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to reindex content: ${contentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -429,10 +426,10 @@ class ContentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to reindex content', error, { contentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while reindexing content: ${contentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, contentPath });
+            throw new AEMException(`Unexpected error while reindexing content: ${contentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, contentPath });
         }
     }
     /**
@@ -542,5 +539,4 @@ class ContentOperationsService {
         return extension && mimeTypes[extension] ? mimeTypes[extension] : 'application/octet-stream';
     }
 }
-exports.ContentOperationsService = ContentOperationsService;
 //# sourceMappingURL=content-operations-service.js.map

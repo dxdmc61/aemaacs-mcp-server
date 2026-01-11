@@ -185,6 +185,7 @@ GitHub Actions workflow includes:
 
 - **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running in minutes
 - **[Setup Guide](docs/SETUP.md)** - Detailed installation and configuration
+- **[Authentication Guide](docs/AUTHENTICATION.md)** - AEMaaCS authentication methods
 - **[API Documentation](docs/API.md)** - Complete HTTP REST API reference
 - **[MCP Tools Reference](docs/MCP_TOOLS.md)** - Comprehensive MCP tools documentation
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
@@ -209,23 +210,31 @@ GitHub Actions workflow includes:
    # See "Getting Your AEM Credentials" section below
    ```
 
-3. **Start the Servers**:
+3. **Build the Servers**:
    ```bash
-   # Option A: Start both servers (recommended for testing)
-   node start-both-servers.js
-   
-   # Option B: Start individual servers
-   cd packages/read-server && npm start
-   cd packages/write-server && npm start
+   npm run build --workspaces
    ```
 
-4. **Test Your Connection**:
+4. **Start the Servers**:
+   ```bash
+   # Start read server (STDIO mode for MCP)
+   node packages/read-server/dist/index.js --stdio
+   
+   # Start write server (STDIO mode for MCP)
+   node packages/write-server/dist/index.js --stdio
+   
+   # Or start in HTTP mode for REST API access
+   node packages/read-server/dist/index.js --http
+   node packages/write-server/dist/index.js --http
+   ```
+
+5. **Test Your Connection** (HTTP mode):
    ```bash
    # Test read server
-   curl http://localhost:3003/health
+   curl http://localhost:3001/health
    
    # Test write server (requires API key)
-   curl -H "X-API-Key: development-api-key-12345" http://localhost:3004/health
+   curl -H "X-API-Key: your-api-key" http://localhost:3002/health
    ```
 
 ## MCP Integration
@@ -259,13 +268,13 @@ Add this configuration to your **Cursor Settings > Features > Model Context Prot
   "mcpServers": {
     "aemaacs-read-server": {
       "command": "node",
-      "args": ["aemaacs-read-server.js", "--stdio"],
-      "cwd": "/path/to/your/project"
+      "args": ["packages/read-server/dist/index.js", "--stdio"],
+      "cwd": "/path/to/aemaacs-mcp-server"
     },
     "aemaacs-write-server": {
       "command": "node",
-      "args": ["aemaacs-write-server.js", "--stdio"],
-      "cwd": "/path/to/your/project"
+      "args": ["packages/write-server/dist/index.js", "--stdio"],
+      "cwd": "/path/to/aemaacs-mcp-server"
     }
   }
 }
@@ -282,13 +291,13 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "aemaacs-read": {
       "command": "node",
-      "args": ["aemaacs-read-server.js", "--stdio"],
-      "cwd": "/path/to/your/project"
+      "args": ["packages/read-server/dist/index.js", "--stdio"],
+      "cwd": "/path/to/aemaacs-mcp-server"
     },
     "aemaacs-write": {
       "command": "node",
-      "args": ["aemaacs-write-server.js", "--stdio"],
-      "cwd": "/path/to/your/project"
+      "args": ["packages/write-server/dist/index.js", "--stdio"],
+      "cwd": "/path/to/aemaacs-mcp-server"
     }
   }
 }
@@ -296,13 +305,20 @@ Add to your `claude_desktop_config.json`:
 
 ### Getting Your AEM Credentials
 
-To get the required AEMaaCS credentials using OAuth 2.0 (Adobe's current authentication method):
+For detailed authentication setup, see **[Authentication Guide](docs/AUTHENTICATION.md)**.
 
-1. **Go to Adobe Developer Console**: https://developer.adobe.com/console/
-2. **Create a new project** or select an existing one
-3. **Add AEM API** to your project
-4. **Generate OAuth 2.0 credentials** for server-to-server authentication
-5. **Copy the Client ID and Client Secret** from your project credentials to the `.env` file
+**Quick Start Options:**
+
+1. **OAuth 2.0 Server-to-Server** (Recommended for Production):
+   - Go to [Adobe Developer Console](https://developer.adobe.com/console/)
+   - Create a project and add AEM API
+   - Generate OAuth 2.0 credentials
+   - Copy Client ID and Client Secret to `.env`
+
+2. **Token Authentication** (For Development):
+   - Set `AEM_AUTH_TYPE=token` in your `.env` file
+   - Set `AEM_ACCESS_TOKEN` to your development or session token
+   - See [Authentication Guide](docs/AUTHENTICATION.md) for obtaining tokens
 
 ### Why Use .env File Configuration?
 

@@ -2,8 +2,8 @@
  * Workflow Operations Service for AEMaaCS write operations
  * Handles workflow starting, asset processing, and task completion
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface StartWorkflowOptions {
     workflowTitle?: string;
     startComment?: string;
@@ -69,6 +69,67 @@ export interface TaskResult {
     message?: string;
     nextTasks?: WorkflowTask[];
 }
+export interface WorkflowModel {
+    path: string;
+    title?: string;
+    description?: string;
+    version?: string;
+    enabled?: boolean;
+    created?: Date;
+    lastModified?: Date;
+    createdBy?: string;
+    lastModifiedBy?: string;
+    nodes?: WorkflowNode[];
+    transitions?: WorkflowTransition[];
+}
+export interface WorkflowNode {
+    id: string;
+    title?: string;
+    type: 'START' | 'END' | 'PARTICIPANT' | 'PROCESS' | 'SPLIT' | 'OR_SPLIT' | 'AND_SPLIT' | 'MERGE' | 'OR_MERGE' | 'AND_MERGE';
+    description?: string;
+    assignee?: string;
+    formResourcePath?: string;
+    script?: string;
+    properties?: Record<string, any>;
+}
+export interface WorkflowTransition {
+    from: string;
+    to: string;
+    title?: string;
+    condition?: string;
+    script?: string;
+}
+export interface WorkflowInstanceQuery {
+    model?: string;
+    status?: 'RUNNING' | 'COMPLETED' | 'ABORTED' | 'SUSPENDED';
+    initiator?: string;
+    payload?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+}
+export interface WorkflowInstanceResult {
+    instances: WorkflowInstance[];
+    total: number;
+    offset: number;
+    limit: number;
+}
+export interface WorkflowTaskQuery {
+    workflowId?: string;
+    assignee?: string;
+    status?: 'ACTIVE' | 'COMPLETED' | 'TERMINATED';
+    createdDate?: Date;
+    dueDate?: Date;
+    limit?: number;
+    offset?: number;
+}
+export interface WorkflowTaskResult {
+    tasks: WorkflowTask[];
+    total: number;
+    offset: number;
+    limit: number;
+}
 export declare class WorkflowOperationsService {
     private client;
     private logger;
@@ -113,6 +174,58 @@ export declare class WorkflowOperationsService {
      * Map task status string to enum
      */
     private mapTaskStatus;
+    /**
+     * List all available workflow models
+     */
+    listWorkflowModels(): Promise<AEMResponse<WorkflowModel[]>>;
+    /**
+     * Get workflow model details
+     */
+    getWorkflowModel(modelPath: string): Promise<AEMResponse<WorkflowModel>>;
+    /**
+     * Get workflow instances with query options
+     */
+    getWorkflowInstances(query?: WorkflowInstanceQuery): Promise<AEMResponse<WorkflowInstanceResult>>;
+    /**
+     * Get specific workflow instance
+     */
+    getWorkflowInstance(instanceId: string): Promise<AEMResponse<WorkflowInstance>>;
+    /**
+     * Abort workflow instance
+     */
+    abortWorkflowInstance(instanceId: string, comment?: string): Promise<AEMResponse<WorkflowInstance>>;
+    /**
+     * Suspend workflow instance
+     */
+    suspendWorkflowInstance(instanceId: string, comment?: string): Promise<AEMResponse<WorkflowInstance>>;
+    /**
+     * Resume workflow instance
+     */
+    resumeWorkflowInstance(instanceId: string, comment?: string): Promise<AEMResponse<WorkflowInstance>>;
+    /**
+     * Get workflow tasks with query options
+     */
+    getWorkflowTasks(query?: WorkflowTaskQuery): Promise<AEMResponse<WorkflowTaskResult>>;
+    /**
+     * Get specific workflow task
+     */
+    getWorkflowTask(taskId: string): Promise<AEMResponse<WorkflowTask>>;
+    /**
+     * Parse workflow nodes from data
+     */
+    private parseWorkflowNodes;
+    /**
+     * Parse workflow transitions from data
+     */
+    private parseWorkflowTransitions;
+    /**
+     * Parse workflow instance from raw data
+     */
+    private parseWorkflowInstanceFromData;
+    /**
+     * Parse workflow task from raw data
+     */
+    private parseWorkflowTaskFromData;
     /**
      * Wait for asset processing completion
      */

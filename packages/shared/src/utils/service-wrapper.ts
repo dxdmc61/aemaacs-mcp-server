@@ -54,7 +54,7 @@ export abstract class ServiceWrapper {
   /**
    * Execute operation with circuit breaker protection and fallback
    */
-  protected async executeWithProtection<T>(
+  public async executeWithProtection<T>(
     operation: () => Promise<T>,
     fallbackOperation?: () => Promise<T>,
     operationName?: string
@@ -90,7 +90,7 @@ export abstract class ServiceWrapper {
   /**
    * Execute operation with retry logic
    */
-  protected async executeWithRetry<T>(
+  public async executeWithRetry<T>(
     operation: () => Promise<T>,
     operationName?: string
   ): Promise<T> {

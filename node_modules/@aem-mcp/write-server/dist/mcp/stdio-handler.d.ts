@@ -2,7 +2,7 @@
  * STDIO Protocol Handler for MCP Communication (Write Server)
  * Handles MCP protocol over STDIO for write server with enhanced security
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 export interface MCPMessage {
     jsonrpc: '2.0';
     id?: string | number;
@@ -71,6 +71,8 @@ export declare class STDIOHandler {
     private sendResponse;
     /**
      * Send error response
+     * Note: Only send error responses when we have a valid id
+     * Per MCP spec, id:null is only for parse errors, but Cursor rejects it
      */
     private sendErrorResponse;
     /**

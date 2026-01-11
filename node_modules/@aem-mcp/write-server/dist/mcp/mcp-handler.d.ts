@@ -2,7 +2,7 @@
  * MCP Protocol Handler for Write Server
  * Handles MCP tool discovery, schema generation, and tool execution for write operations
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 export interface MCPTool {
     name: string;
     description: string;

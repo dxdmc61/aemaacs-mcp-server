@@ -2,8 +2,8 @@
  * Component Operations Service for AEMaaCS write operations
  * Handles component creation, updating, deletion, bulk updates, validation, and image path updates
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface CreateComponentOptions {
     resourceType: string;
     name?: string;

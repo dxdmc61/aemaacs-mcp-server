@@ -1,17 +1,11 @@
-"use strict";
 /**
  * Logging and monitoring utilities for AEMaaCS MCP servers
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.OperationTimer = exports.PerformanceMonitor = exports.ChildLogger = exports.Logger = void 0;
-const winston_1 = __importDefault(require("winston"));
-const index_js_1 = require("../config/index.js");
-class Logger {
+import winston from 'winston';
+import { ConfigManager } from '../config/index.js';
+export class Logger {
     constructor() {
-        const config = index_js_1.ConfigManager.getInstance().getLoggingConfig();
+        const config = ConfigManager.getInstance().getLoggingConfig();
         this.winston = this.createLogger(config);
         this.auditLogger = this.createAuditLogger(config);
     }
@@ -24,23 +18,30 @@ class Logger {
     createLogger(config) {
         const transports = [];
         // Console transport
+        // In STDIO mode (MCP), logs must go to stderr to avoid interfering with JSON-RPC protocol on stdout
+        const isStdioMode = process.argv.includes('--stdio');
         if (config.console.enabled) {
-            transports.push(new winston_1.default.transports.Console({
-                format: winston_1.default.format.combine(winston_1.default.format.timestamp(), config.console.colorize ? winston_1.default.format.colorize() : winston_1.default.format.uncolorize(), config.format === 'json'
-                    ? winston_1.default.format.json()
-                    : winston_1.default.format.simple())
-            }));
+            const consoleTransportOptions = {
+                format: winston.format.combine(winston.format.timestamp(), config.console.colorize ? winston.format.colorize() : winston.format.uncolorize(), config.format === 'json'
+                    ? winston.format.json()
+                    : winston.format.simple())
+            };
+            // In STDIO mode, redirect all logs to stderr
+            if (isStdioMode) {
+                consoleTransportOptions.stderrLevels = ['error', 'warn', 'info', 'debug', 'verbose', 'silly'];
+            }
+            transports.push(new winston.transports.Console(consoleTransportOptions));
         }
         // File transport
         if (config.file?.enabled) {
-            transports.push(new winston_1.default.transports.File({
+            transports.push(new winston.transports.File({
                 filename: config.file.path,
                 maxsize: this.parseSize(config.file.maxSize),
                 maxFiles: config.file.maxFiles,
-                format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.json())
+                format: winston.format.combine(winston.format.timestamp(), winston.format.json())
             }));
         }
-        return winston_1.default.createLogger({
+        return winston.createLogger({
             level: config.level,
             transports,
             defaultMeta: {
@@ -53,22 +54,22 @@ class Logger {
         // Always log audit events to file if file logging is enabled
         if (config.file?.enabled) {
             const auditPath = config.file.path.replace('.log', '-audit.log');
-            transports.push(new winston_1.default.transports.File({
+            transports.push(new winston.transports.File({
                 filename: auditPath,
                 maxsize: this.parseSize(config.file.maxSize),
                 maxFiles: config.file.maxFiles,
-                format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.json())
+                format: winston.format.combine(winston.format.timestamp(), winston.format.json())
             }));
         }
         // Also log to console in development
         if (config.console.enabled && config.level === 'debug') {
-            transports.push(new winston_1.default.transports.Console({
-                format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.colorize(), winston_1.default.format.printf(({ timestamp, level, message, ...meta }) => {
+            transports.push(new winston.transports.Console({
+                format: winston.format.combine(winston.format.timestamp(), winston.format.colorize(), winston.format.printf(({ timestamp, level, message, ...meta }) => {
                     return `${timestamp} [AUDIT] ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''}`;
                 }))
             }));
         }
-        return winston_1.default.createLogger({
+        return winston.createLogger({
             level: 'info',
             transports,
             defaultMeta: {
@@ -184,8 +185,7 @@ class Logger {
         });
     }
 }
-exports.Logger = Logger;
-class ChildLogger {
+export class ChildLogger {
     constructor(parent, defaultContext) {
         this.parent = parent;
         this.defaultContext = defaultContext;
@@ -206,8 +206,7 @@ class ChildLogger {
         this.parent.error(message, error, this.mergeContext(context));
     }
 }
-exports.ChildLogger = ChildLogger;
-class PerformanceMonitor {
+export class PerformanceMonitor {
     constructor() {
         this.metrics = new Map();
         this.logger = Logger.getInstance();
@@ -266,8 +265,7 @@ class PerformanceMonitor {
         this.metrics.clear();
     }
 }
-exports.PerformanceMonitor = PerformanceMonitor;
-class OperationTimer {
+export class OperationTimer {
     constructor(operationId, operation, monitor) {
         this.operationId = operationId;
         this.operation = operation;
@@ -280,5 +278,4 @@ class OperationTimer {
         return duration;
     }
 }
-exports.OperationTimer = OperationTimer;
 //# sourceMappingURL=logger.js.map

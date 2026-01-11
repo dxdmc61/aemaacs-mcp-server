@@ -1,41 +1,40 @@
-"use strict";
 /**
  * MCP Protocol Handler for Read Server
  * Handles MCP tool discovery, schema generation, and tool execution
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.MCPHandler = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 // Import all read services
-const package_service_js_1 = require("../services/package-service.js");
-const content_discovery_service_js_1 = require("../services/content-discovery-service.js");
-const component_analysis_service_js_1 = require("../services/component-analysis-service.js");
-const search_query_service_js_1 = require("../services/search-query-service.js");
-const asset_management_service_js_1 = require("../services/asset-management-service.js");
-const user_administration_service_js_1 = require("../services/user-administration-service.js");
-const tag_management_service_js_1 = require("../services/tag-management-service.js");
-const template_site_service_js_1 = require("../services/template-site-service.js");
-const workflow_service_js_1 = require("../services/workflow-service.js");
-const replication_service_js_1 = require("../services/replication-service.js");
-const system_operations_service_js_1 = require("../services/system-operations-service.js");
-class MCPHandler {
+import { PackageService } from '../services/package-service.js';
+import { ContentDiscoveryService } from '../services/content-discovery-service.js';
+import { ComponentAnalysisService } from '../services/component-analysis-service.js';
+import { SearchQueryService } from '../services/search-query-service.js';
+import { AssetManagementService } from '../services/asset-management-service.js';
+import { UserAdministrationService } from '../services/user-administration-service.js';
+import { TagManagementService } from '../services/tag-management-service.js';
+import { TemplateSiteService } from '../services/template-site-service.js';
+import { WorkflowService } from '../services/workflow-service.js';
+import { ReplicationService } from '../services/replication-service.js';
+import { SystemOperationsService } from '../services/system-operations-service.js';
+import { TemplateComponentManagementService } from '../services/template-component-management-service.js';
+export class MCPHandler {
     constructor(client) {
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
         this.client = client;
         // Initialize all services
         this.services = {
-            package: new package_service_js_1.PackageService(client),
-            contentDiscovery: new content_discovery_service_js_1.ContentDiscoveryService(client),
-            componentAnalysis: new component_analysis_service_js_1.ComponentAnalysisService(client),
-            searchQuery: new search_query_service_js_1.SearchQueryService(client),
-            assetManagement: new asset_management_service_js_1.AssetManagementService(client),
-            userAdministration: new user_administration_service_js_1.UserAdministrationService(client),
-            tagManagement: new tag_management_service_js_1.TagManagementService(client),
-            templateSite: new template_site_service_js_1.TemplateSiteService(client),
-            workflow: new workflow_service_js_1.WorkflowService(client),
-            replication: new replication_service_js_1.ReplicationService(client),
-            systemOperations: new system_operations_service_js_1.SystemOperationsService(client)
+            package: new PackageService(client),
+            contentDiscovery: new ContentDiscoveryService(client),
+            componentAnalysis: new ComponentAnalysisService(client),
+            searchQuery: new SearchQueryService(client),
+            assetManagement: new AssetManagementService(client),
+            userAdministration: new UserAdministrationService(client),
+            tagManagement: new TagManagementService(client),
+            templateSite: new TemplateSiteService(client),
+            workflow: new WorkflowService(client),
+            replication: new ReplicationService(client),
+            systemOperations: new SystemOperationsService(client),
+            templateComponentManagement: new TemplateComponentManagementService(client)
         };
     }
     /**
@@ -166,6 +165,70 @@ class MCPHandler {
                     required: ['query']
                 }
             },
+            {
+                name: 'aem_advanced_search',
+                description: 'Advanced search with full QueryBuilder support, facets, and pagination',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        path: { type: 'string', description: 'Path to search within' },
+                        type: { type: 'string', description: 'Node type to search for' },
+                        fulltext: { type: 'string', description: 'Full-text search term' },
+                        filters: { type: 'object', description: 'Property filters as key-value pairs' },
+                        facets: { type: 'array', items: { type: 'string' }, description: 'Facet fields to include' },
+                        boost: { type: 'object', description: 'Field boost values' },
+                        fuzzy: { type: 'boolean', description: 'Enable fuzzy search', default: false },
+                        synonyms: { type: 'boolean', description: 'Enable synonym search', default: false },
+                        orderBy: { type: 'string', description: 'Field to order by' },
+                        orderDirection: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction', default: 'desc' },
+                        limit: { type: 'number', description: 'Maximum results to return', default: 20 },
+                        offset: { type: 'number', description: 'Results offset for pagination', default: 0 }
+                    }
+                }
+            },
+            {
+                name: 'aem_search_content_fragments',
+                description: 'Search content fragments with advanced filtering',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        path: { type: 'string', description: 'Path to search within', default: '/content/dam' },
+                        model: { type: 'string', description: 'Content fragment model' },
+                        variation: { type: 'string', description: 'Content fragment variation' },
+                        elements: { type: 'array', items: { type: 'string' }, description: 'Element names to search' },
+                        elementValues: { type: 'array', items: { type: 'string' }, description: 'Element values to match' },
+                        fulltext: { type: 'string', description: 'Full-text search term' },
+                        limit: { type: 'number', description: 'Maximum results to return', default: 20 },
+                        offset: { type: 'number', description: 'Results offset for pagination', default: 0 }
+                    }
+                }
+            },
+            {
+                name: 'aem_get_search_suggestions',
+                description: 'Get search suggestions based on query',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        query: { type: 'string', description: 'Search query for suggestions' },
+                        path: { type: 'string', description: 'Path to search within' },
+                        type: { type: 'string', description: 'Node type to search for' },
+                        limit: { type: 'number', description: 'Maximum suggestions to return', default: 10 }
+                    },
+                    required: ['query']
+                }
+            },
+            {
+                name: 'aem_get_search_facets',
+                description: 'Get search facets for filtering',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        path: { type: 'string', description: 'Path to search within' },
+                        type: { type: 'string', description: 'Node type to search for' },
+                        facets: { type: 'array', items: { type: 'string' }, description: 'Facet fields to retrieve' }
+                    }
+                }
+            },
             // Asset Management Tools
             {
                 name: 'aem_list_assets',
@@ -292,6 +355,65 @@ class MCPHandler {
                         status: { type: 'string', description: 'Filter by job status' }
                     }
                 }
+            },
+            // Template and Component Management Tools
+            {
+                name: 'aem_discover_templates',
+                description: 'Discover all available templates',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        sitePath: { type: 'string', description: 'Site path to discover templates for' }
+                    }
+                }
+            },
+            {
+                name: 'aem_analyze_component_usage',
+                description: 'Analyze component usage across the site',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        componentPath: { type: 'string', description: 'Specific component path to analyze' },
+                        resourceType: { type: 'string', description: 'Filter by resource type' },
+                        allowedPaths: { type: 'array', items: { type: 'string' }, description: 'Filter by allowed paths' },
+                        allowedChildren: { type: 'array', items: { type: 'string' }, description: 'Filter by allowed children' },
+                        includeInherited: { type: 'boolean', description: 'Include inherited components', default: false }
+                    }
+                }
+            },
+            {
+                name: 'aem_track_component_dependencies',
+                description: 'Track component dependencies',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        componentPath: { type: 'string', description: 'Specific component path to track dependencies for' },
+                        includeCircular: { type: 'boolean', description: 'Include circular dependencies', default: false },
+                        includeInherited: { type: 'boolean', description: 'Include inherited dependencies', default: true },
+                        maxDepth: { type: 'number', description: 'Maximum depth for dependency tracking' }
+                    }
+                }
+            },
+            {
+                name: 'aem_analyze_template_structure',
+                description: 'Analyze template structure and components',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        templatePath: { type: 'string', description: 'Template path to analyze' }
+                    },
+                    required: ['templatePath']
+                }
+            },
+            {
+                name: 'aem_get_component_usage_statistics',
+                description: 'Get component usage statistics',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        componentPath: { type: 'string', description: 'Specific component path to get statistics for' }
+                    }
+                }
             }
         ];
     }
@@ -320,44 +442,84 @@ class MCPHandler {
                     });
                     break;
                 case 'aem_get_page_content':
-                    result = await this.services.contentDiscovery.getPageContent(args.pagePath, {
-                        depth: args.depth
-                    });
+                    result = await this.services.contentDiscovery.getPageContent(args.pagePath);
                     break;
                 case 'aem_get_page_properties':
                     result = await this.services.contentDiscovery.getPageProperties(args.pagePath);
                     break;
                 // Component Analysis
                 case 'aem_scan_page_components':
-                    result = await this.services.componentAnalysis.scanPageComponents(args.pagePath, {
-                        includeInherited: args.includeInherited
-                    });
+                    result = await this.services.componentAnalysis.scanPageComponents(args.pagePath);
                     break;
                 case 'aem_get_page_text_content':
-                    result = await this.services.componentAnalysis.getPageTextContent(args.pagePath, {
-                        includeHidden: args.includeHidden
-                    });
+                    result = await this.services.componentAnalysis.getPageTextContent(args.pagePath);
                     break;
                 case 'aem_get_page_images':
                     result = await this.services.componentAnalysis.getPageImages(args.pagePath);
                     break;
                 // Search and Query
                 case 'aem_search_content':
-                    result = await this.services.searchQuery.searchContent(args.query, {
+                    result = await this.services.searchQuery.searchContent({
+                        fulltext: args.query,
                         path: args.path,
                         type: args.type,
                         limit: args.limit
                     });
                     break;
                 case 'aem_search_assets':
-                    result = await this.services.searchQuery.searchAssets(args.query, {
+                    result = await this.services.searchQuery.searchAssets({
+                        path: args.path,
                         mimeType: args.mimeType,
+                        tags: args.tags,
                         limit: args.limit
+                    });
+                    break;
+                case 'aem_advanced_search':
+                    result = await this.services.searchQuery.advancedSearch({
+                        path: args.path,
+                        type: args.type,
+                        fulltext: args.fulltext,
+                        filters: args.filters,
+                        facets: args.facets,
+                        boost: args.boost,
+                        fuzzy: args.fuzzy,
+                        synonyms: args.synonyms,
+                        orderBy: args.orderBy,
+                        orderDirection: args.orderDirection,
+                        limit: args.limit,
+                        offset: args.offset
+                    });
+                    break;
+                case 'aem_search_content_fragments':
+                    result = await this.services.searchQuery.searchContentFragments({
+                        path: args.path,
+                        model: args.model,
+                        variation: args.variation,
+                        elements: args.elements,
+                        elementValues: args.elementValues,
+                        fulltext: args.fulltext,
+                        limit: args.limit,
+                        offset: args.offset
+                    });
+                    break;
+                case 'aem_get_search_suggestions':
+                    result = await this.services.searchQuery.getSearchSuggestions(args.query, {
+                        path: args.path,
+                        type: args.type,
+                        limit: args.limit
+                    });
+                    break;
+                case 'aem_get_search_facets':
+                    result = await this.services.searchQuery.getSearchFacets({
+                        path: args.path,
+                        type: args.type,
+                        facets: args.facets
                     });
                     break;
                 // Asset Management
                 case 'aem_list_assets':
-                    result = await this.services.assetManagement.listAssets(args.path || '/content/dam', {
+                    result = await this.services.assetManagement.listAssets({
+                        path: args.path || '/content/dam',
                         mimeType: args.mimeType,
                         limit: args.limit
                     });
@@ -371,8 +533,8 @@ class MCPHandler {
                 // User Administration
                 case 'aem_list_users':
                     result = await this.services.userAdministration.listUsers({
-                        group: args.group,
-                        limit: args.limit
+                        path: args.path,
+                        query: args.query
                     });
                     break;
                 case 'aem_list_groups':
@@ -407,11 +569,37 @@ class MCPHandler {
                     break;
                 case 'aem_list_async_jobs':
                     result = await this.services.systemOperations.getAsyncJobs({
-                        status: args.status
+                        state: args.status,
+                        limit: args.limit
                     });
                     break;
+                // Template and Component Management
+                case 'aem_discover_templates':
+                    result = await this.services.templateComponentManagement.discoverTemplates(args.sitePath);
+                    break;
+                case 'aem_analyze_component_usage':
+                    result = await this.services.templateComponentManagement.analyzeComponentUsage(args.componentPath, {
+                        resourceType: args.resourceType,
+                        allowedPaths: args.allowedPaths,
+                        allowedChildren: args.allowedChildren,
+                        includeInherited: args.includeInherited
+                    });
+                    break;
+                case 'aem_track_component_dependencies':
+                    result = await this.services.templateComponentManagement.trackComponentDependencies(args.componentPath, {
+                        includeCircular: args.includeCircular,
+                        includeInherited: args.includeInherited,
+                        maxDepth: args.maxDepth
+                    });
+                    break;
+                case 'aem_analyze_template_structure':
+                    result = await this.services.templateComponentManagement.analyzeTemplateStructure(args.templatePath);
+                    break;
+                case 'aem_get_component_usage_statistics':
+                    result = await this.services.templateComponentManagement.getComponentUsageStatistics(args.componentPath);
+                    break;
                 default:
-                    throw new errors_js_1.AEMException(`Unknown tool: ${toolName}`, 'VALIDATION_ERROR', false);
+                    throw new AEMException(`Unknown tool: ${toolName}`, 'VALIDATION_ERROR', false);
             }
             // Format response
             const response = {
@@ -427,7 +615,7 @@ class MCPHandler {
         }
         catch (error) {
             this.logger.error('Failed to execute MCP tool', error, { toolName: request.params.name });
-            const errorMessage = error instanceof errors_js_1.AEMException
+            const errorMessage = error instanceof AEMException
                 ? error.message
                 : `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`;
             return {
@@ -470,5 +658,4 @@ class MCPHandler {
         }
     }
 }
-exports.MCPHandler = MCPHandler;
 //# sourceMappingURL=mcp-handler.js.map

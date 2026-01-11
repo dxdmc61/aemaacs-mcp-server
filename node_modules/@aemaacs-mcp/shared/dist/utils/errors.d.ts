@@ -6,6 +6,7 @@ import { MCPError } from '../types/mcp.js';
 export declare class AEMException extends Error {
     readonly code: string;
     readonly recoverable: boolean;
+    readonly retryable: boolean;
     readonly retryAfter?: number | undefined;
     readonly details?: Record<string, any> | undefined;
     constructor(message: string, code?: string, recoverable?: boolean, retryAfter?: number | undefined, details?: Record<string, any> | undefined);

@@ -2,7 +2,7 @@
  * STDIO Protocol Handler for MCP Communication
  * Handles MCP protocol over STDIO for read server
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 export interface MCPMessage {
     jsonrpc: '2.0';
     id?: string | number;
@@ -19,6 +19,9 @@ export declare class STDIOHandler {
     private logger;
     private mcpHandler;
     private running;
+    private initialized;
+    private requestQueue;
+    private maxRequestTimeout;
     constructor(client: AEMHttpClient);
     /**
      * Start STDIO handler
@@ -53,11 +56,17 @@ export declare class STDIOHandler {
      */
     private handleToolsCall;
     /**
+     * Handle streaming tool call
+     */
+    private handleStreamingToolCall;
+    /**
      * Send response message
      */
     private sendResponse;
     /**
      * Send error response
+     * Note: Only send error responses when we have a valid id
+     * Per MCP spec, id:null is only for parse errors, but Cursor rejects it
      */
     private sendErrorResponse;
     /**
@@ -72,5 +81,26 @@ export declare class STDIOHandler {
      * Handle STDIN error
      */
     private handleError;
+    /**
+     * Clean up request queue
+     */
+    private cleanupRequestQueue;
+    /**
+     * Add request to queue for timeout tracking
+     */
+    private addRequestToQueue;
+    /**
+     * Remove request from queue
+     */
+    private removeRequestFromQueue;
+    /**
+     * Get handler statistics
+     */
+    getStats(): {
+        running: boolean;
+        initialized: boolean;
+        pendingRequests: number;
+        maxRequestTimeout: number;
+    };
 }
 //# sourceMappingURL=stdio-handler.d.ts.map

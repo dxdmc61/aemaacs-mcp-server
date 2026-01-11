@@ -1,17 +1,15 @@
-"use strict";
 /**
  * Error handling utilities for AEMaaCS MCP servers
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.RetryHandler = exports.ErrorHandler = exports.AEMException = void 0;
-const aem_js_1 = require("../types/aem.js");
-const mcp_js_1 = require("../types/mcp.js");
-class AEMException extends Error {
-    constructor(message, code = aem_js_1.ErrorType.UNKNOWN_ERROR, recoverable = false, retryAfter, details) {
+import { ErrorType } from '../types/aem.js';
+import { MCPErrorCode } from '../types/mcp.js';
+export class AEMException extends Error {
+    constructor(message, code = ErrorType.UNKNOWN_ERROR, recoverable = false, retryAfter, details) {
         super(message);
         this.name = 'AEMException';
         this.code = code;
         this.recoverable = recoverable;
+        this.retryable = recoverable; // alias for recoverable
         this.retryAfter = retryAfter;
         this.details = details;
     }
@@ -39,25 +37,24 @@ class AEMException extends Error {
     }
     getMCPErrorCode() {
         switch (this.code) {
-            case aem_js_1.ErrorType.VALIDATION_ERROR:
-                return mcp_js_1.MCPErrorCode.INVALID_PARAMS;
-            case aem_js_1.ErrorType.NOT_FOUND_ERROR:
-                return mcp_js_1.MCPErrorCode.METHOD_NOT_FOUND;
-            case aem_js_1.ErrorType.AUTHENTICATION_ERROR:
-            case aem_js_1.ErrorType.AUTHORIZATION_ERROR:
+            case ErrorType.VALIDATION_ERROR:
+                return MCPErrorCode.INVALID_PARAMS;
+            case ErrorType.NOT_FOUND_ERROR:
+                return MCPErrorCode.METHOD_NOT_FOUND;
+            case ErrorType.AUTHENTICATION_ERROR:
+            case ErrorType.AUTHORIZATION_ERROR:
                 return -32001; // Custom authentication error
-            case aem_js_1.ErrorType.NETWORK_ERROR:
-            case aem_js_1.ErrorType.TIMEOUT_ERROR:
+            case ErrorType.NETWORK_ERROR:
+            case ErrorType.TIMEOUT_ERROR:
                 return -32002; // Custom network error
-            case aem_js_1.ErrorType.SERVER_ERROR:
-                return mcp_js_1.MCPErrorCode.INTERNAL_ERROR;
+            case ErrorType.SERVER_ERROR:
+                return MCPErrorCode.INTERNAL_ERROR;
             default:
-                return mcp_js_1.MCPErrorCode.INTERNAL_ERROR;
+                return MCPErrorCode.INTERNAL_ERROR;
         }
     }
 }
-exports.AEMException = AEMException;
-class ErrorHandler {
+export class ErrorHandler {
     static handleError(error, context) {
         if (error instanceof AEMException) {
             return error.toAEMError();
@@ -69,7 +66,7 @@ class ErrorHandler {
         // Handle validation errors
         if (error.name === 'ValidationError') {
             return {
-                code: aem_js_1.ErrorType.VALIDATION_ERROR,
+                code: ErrorType.VALIDATION_ERROR,
                 message: error.message,
                 recoverable: false,
                 details: { context }
@@ -77,7 +74,7 @@ class ErrorHandler {
         }
         // Default error handling
         return {
-            code: aem_js_1.ErrorType.UNKNOWN_ERROR,
+            code: ErrorType.UNKNOWN_ERROR,
             message: error.message || 'An unknown error occurred',
             recoverable: false,
             details: {
@@ -92,7 +89,7 @@ class ErrorHandler {
         const data = error.response?.data;
         if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
             return {
-                code: aem_js_1.ErrorType.TIMEOUT_ERROR,
+                code: ErrorType.TIMEOUT_ERROR,
                 message: 'Request timeout',
                 recoverable: true,
                 retryAfter: 5000,
@@ -101,7 +98,7 @@ class ErrorHandler {
         }
         if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
             return {
-                code: aem_js_1.ErrorType.NETWORK_ERROR,
+                code: ErrorType.NETWORK_ERROR,
                 message: 'Network connection failed',
                 recoverable: true,
                 retryAfter: 10000,
@@ -111,35 +108,35 @@ class ErrorHandler {
         switch (status) {
             case 401:
                 return {
-                    code: aem_js_1.ErrorType.AUTHENTICATION_ERROR,
+                    code: ErrorType.AUTHENTICATION_ERROR,
                     message: 'Authentication failed',
                     recoverable: false,
                     details: { context, status, statusText, data }
                 };
             case 403:
                 return {
-                    code: aem_js_1.ErrorType.AUTHORIZATION_ERROR,
+                    code: ErrorType.AUTHORIZATION_ERROR,
                     message: 'Access denied',
                     recoverable: false,
                     details: { context, status, statusText, data }
                 };
             case 404:
                 return {
-                    code: aem_js_1.ErrorType.NOT_FOUND_ERROR,
+                    code: ErrorType.NOT_FOUND_ERROR,
                     message: 'Resource not found',
                     recoverable: false,
                     details: { context, status, statusText, data }
                 };
             case 400:
                 return {
-                    code: aem_js_1.ErrorType.VALIDATION_ERROR,
+                    code: ErrorType.VALIDATION_ERROR,
                     message: 'Invalid request parameters',
                     recoverable: false,
                     details: { context, status, statusText, data }
                 };
             case 429:
                 return {
-                    code: aem_js_1.ErrorType.SERVER_ERROR,
+                    code: ErrorType.SERVER_ERROR,
                     message: 'Rate limit exceeded',
                     recoverable: true,
                     retryAfter: parseInt(error.response?.headers?.['retry-after']) * 1000 || 60000,
@@ -150,7 +147,7 @@ class ErrorHandler {
             case 503:
             case 504:
                 return {
-                    code: aem_js_1.ErrorType.SERVER_ERROR,
+                    code: ErrorType.SERVER_ERROR,
                     message: `Server error: ${statusText}`,
                     recoverable: true,
                     retryAfter: 30000,
@@ -158,7 +155,7 @@ class ErrorHandler {
                 };
             default:
                 return {
-                    code: aem_js_1.ErrorType.UNKNOWN_ERROR,
+                    code: ErrorType.UNKNOWN_ERROR,
                     message: `HTTP ${status}: ${statusText}`,
                     recoverable: false,
                     details: { context, status, statusText, data }
@@ -174,8 +171,7 @@ class ErrorHandler {
         return delay + Math.random() * 1000;
     }
 }
-exports.ErrorHandler = ErrorHandler;
-class RetryHandler {
+export class RetryHandler {
     constructor(config) {
         this.config = config;
     }
@@ -206,5 +202,4 @@ class RetryHandler {
         throw new AEMException(`Operation failed after ${this.config.maxAttempts} attempts: ${finalError.message}`, finalError.code, false, undefined, { ...finalError.details, attempts: this.config.maxAttempts });
     }
 }
-exports.RetryHandler = RetryHandler;
 //# sourceMappingURL=errors.js.map

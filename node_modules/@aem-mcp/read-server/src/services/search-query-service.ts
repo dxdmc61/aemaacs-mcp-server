@@ -3,10 +3,10 @@
  * Handles content search, JCR queries, and asset discovery
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Asset, User, Group } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse, Asset, User, Group } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface SearchOptions {
   path?: string;
@@ -763,7 +763,7 @@ export class SearchQueryService {
         ...hit.profile
       },
       groups: hit['rep:groups'] || [],
-      permissions: [] // Would need separate call to get permissions
+      permissions: [] as Array<{ path: string; privileges: string[]; allow: boolean }> // Would need separate call to get permissions
     }));
   }
 
@@ -808,7 +808,7 @@ export class SearchQueryService {
   /**
    * Advanced QueryBuilder search with full parameter support
    */
-  async advancedSearch(options: AdvancedSearchOptions = {}): Promise<AEMResponse<SearchResponse>> {
+  async advancedSearch(options: EnhancedSearchOptions = {}): Promise<AEMResponse<SearchResponse>> {
     try {
       this.logger.debug('Executing advanced search', { options });
 
@@ -822,7 +822,7 @@ export class SearchQueryService {
 
       // Add facets if requested
       if (options.facets && options.facets.length > 0) {
-        options.facets.forEach((facet, index) => {
+        options.facets.forEach((facet: string, index: number) => {
           params[`${index}_facet`] = facet;
         });
       }
@@ -1150,7 +1150,7 @@ export class SearchQueryService {
   /**
    * Build advanced query parameters
    */
-  private buildAdvancedQueryParams(params: Record<string, any>, options: AdvancedSearchOptions): void {
+  private buildAdvancedQueryParams(params: Record<string, any>, options: EnhancedSearchOptions): void {
     // Basic search parameters
     if (options.path) {
       params['path'] = options.path;

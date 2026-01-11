@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Template and Site Service for AEMaaCS read operations
  * Handles site discovery, template management, and locale operations
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateSiteService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class TemplateSiteService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class TemplateSiteService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Fetch sites for site discovery
@@ -35,7 +32,7 @@ class TemplateSiteService {
             };
             const response = await this.client.get('/bin/querybuilder.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to fetch sites', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to fetch sites', 'SERVER_ERROR', true, undefined, { response });
             }
             const sites = await this.parseSitesResponse(response.data);
             this.logger.debug('Successfully fetched sites', {
@@ -54,10 +51,10 @@ class TemplateSiteService {
         }
         catch (error) {
             this.logger.error('Failed to fetch sites', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while fetching sites', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while fetching sites', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -67,7 +64,7 @@ class TemplateSiteService {
         try {
             this.logger.debug('Fetching language masters', { sitePath });
             if (!sitePath) {
-                throw new errors_js_1.AEMException('Site path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Site path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -80,7 +77,7 @@ class TemplateSiteService {
             // Get site structure to identify language masters
             const response = await this.client.get(`${sitePath}.2.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Site not found: ${sitePath}`, 'NOT_FOUND_ERROR', false, undefined, { sitePath });
+                throw new AEMException(`Site not found: ${sitePath}`, 'NOT_FOUND_ERROR', false, undefined, { sitePath });
             }
             const languageMasters = await this.parseLanguageMastersResponse(response.data, sitePath);
             this.logger.debug('Successfully fetched language masters', {
@@ -100,10 +97,10 @@ class TemplateSiteService {
         }
         catch (error) {
             this.logger.error('Failed to fetch language masters', error, { sitePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while fetching language masters for ${sitePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, sitePath });
+            throw new AEMException(`Unexpected error while fetching language masters for ${sitePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, sitePath });
         }
     }
     /**
@@ -188,7 +185,7 @@ class TemplateSiteService {
             };
             const response = await this.client.get('/bin/querybuilder.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get templates', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get templates', 'SERVER_ERROR', true, undefined, { response });
             }
             const templates = await this.parseTemplatesResponse(response.data);
             this.logger.debug('Successfully retrieved templates', {
@@ -207,10 +204,10 @@ class TemplateSiteService {
         }
         catch (error) {
             this.logger.error('Failed to get templates', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting templates', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting templates', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -220,7 +217,7 @@ class TemplateSiteService {
         try {
             this.logger.debug('Getting template structure', { templatePath });
             if (!templatePath) {
-                throw new errors_js_1.AEMException('Template path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Template path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -233,7 +230,7 @@ class TemplateSiteService {
             // Get template structure with deep traversal
             const response = await this.client.get(`${templatePath}.infinity.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Template not found: ${templatePath}`, 'NOT_FOUND_ERROR', false, undefined, { templatePath });
+                throw new AEMException(`Template not found: ${templatePath}`, 'NOT_FOUND_ERROR', false, undefined, { templatePath });
             }
             const templateStructure = await this.parseTemplateStructureResponse(response.data, templatePath);
             this.logger.debug('Successfully retrieved template structure', {
@@ -253,10 +250,10 @@ class TemplateSiteService {
         }
         catch (error) {
             this.logger.error('Failed to get template structure', error, { templatePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting template structure for ${templatePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, templatePath });
+            throw new AEMException(`Unexpected error while getting template structure for ${templatePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, templatePath });
         }
     }
     /**
@@ -514,5 +511,4 @@ class TemplateSiteService {
         ];
     }
 }
-exports.TemplateSiteService = TemplateSiteService;
 //# sourceMappingURL=template-site-service.js.map

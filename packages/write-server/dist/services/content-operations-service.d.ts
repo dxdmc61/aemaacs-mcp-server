@@ -2,8 +2,8 @@
  * Content Operations Service for AEMaaCS write operations
  * Handles content creation, folder operations, file uploads, and property management
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface CreateFolderOptions {
     primaryType?: string;
     title?: string;

@@ -2,8 +2,8 @@
  * HTTP REST API Handler for Read Server
  * Provides JSON-RPC 2.0 compliant endpoints for AEM read operations
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { ReadServerConfig } from '../../../shared/src/config/server-config.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { ReadServerConfig } from '@aemaacs-mcp/shared';
 export interface JSONRPCRequest {
     jsonrpc: '2.0';
     method: string;

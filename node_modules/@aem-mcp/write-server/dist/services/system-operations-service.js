@@ -1,16 +1,13 @@
-"use strict";
 /**
  * System Operations Service for AEMaaCS write operations
  * Handles ACL configuration, async job management, and JCR property manipulation
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SystemOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class SystemOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class SystemOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Apply ACL configuration for permission management
@@ -19,11 +16,11 @@ class SystemOperationsService {
         try {
             this.logger.debug('Applying ACL configuration', { config });
             if (!config.path || !config.entries || config.entries.length === 0) {
-                throw new errors_js_1.AEMException('Path and ACL entries are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Path and ACL entries are required', 'VALIDATION_ERROR', false);
             }
             // Validate path
             if (!this.isValidJCRPath(config.path)) {
-                throw new errors_js_1.AEMException('Invalid JCR path format', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid JCR path format', 'VALIDATION_ERROR', false);
             }
             let appliedEntries = 0;
             let skippedEntries = 0;
@@ -49,9 +46,10 @@ class SystemOperationsService {
                     failedEntries++;
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     errors.push(`Failed to apply ACL for principal ${entry.principal}: ${errorMessage}`);
-                    this.logger.warn('Failed to apply ACL entry', error, {
+                    this.logger.warn('Failed to apply ACL entry', {
                         path: config.path,
-                        principal: entry.principal
+                        principal: entry.principal,
+                        error: error.message
                     });
                 }
             }
@@ -82,10 +80,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to apply ACL configuration', error, { path: config.path });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while applying ACL configuration to: ${config.path}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, path: config.path });
+            throw new AEMException(`Unexpected error while applying ACL configuration to: ${config.path}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, path: config.path });
         }
     }
     /**
@@ -95,7 +93,7 @@ class SystemOperationsService {
         try {
             this.logger.debug('Deleting async job', { jobId });
             if (!jobId) {
-                throw new errors_js_1.AEMException('Job ID is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Job ID is required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append(':operation', 'delete');
@@ -107,7 +105,7 @@ class SystemOperationsService {
             };
             const response = await this.client.post(`/var/eventing/jobs/${jobId}`, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to delete async job: ${jobId}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete async job: ${jobId}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -129,10 +127,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to delete async job', error, { jobId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting async job: ${jobId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, jobId });
+            throw new AEMException(`Unexpected error while deleting async job: ${jobId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, jobId });
         }
     }
     /**
@@ -140,21 +138,21 @@ class SystemOperationsService {
      */
     async manipulateJCRProperty(operation) {
         try {
-            this.logger.debug('Manipulating JCR property', { operation });
+            this.logger.debug('Manipulating JCR property', { operation: 'manipulateJCRProperty', path: operation.path, property: operation.property });
             if (!operation.path || !operation.property) {
-                throw new errors_js_1.AEMException('Path and property name are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Path and property name are required', 'VALIDATION_ERROR', false);
             }
             // Validate path
             if (!this.isValidJCRPath(operation.path)) {
-                throw new errors_js_1.AEMException('Invalid JCR path format', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid JCR path format', 'VALIDATION_ERROR', false);
             }
             // Validate property name
             if (!this.isValidPropertyName(operation.property)) {
-                throw new errors_js_1.AEMException('Invalid property name format', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid property name format', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent manipulation of system properties
             if (this.isSystemProperty(operation.property)) {
-                throw new errors_js_1.AEMException(`Cannot manipulate system property: ${operation.property}`, 'VALIDATION_ERROR', false);
+                throw new AEMException(`Cannot manipulate system property: ${operation.property}`, 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             let oldValue = undefined;
@@ -171,7 +169,7 @@ class SystemOperationsService {
             switch (operation.operation) {
                 case 'set':
                     if (operation.value === undefined) {
-                        throw new errors_js_1.AEMException('Value is required for set operation', 'VALIDATION_ERROR', false);
+                        throw new AEMException('Value is required for set operation', 'VALIDATION_ERROR', false);
                     }
                     if (operation.multiple && Array.isArray(operation.value)) {
                         operation.value.forEach((item, index) => {
@@ -190,7 +188,7 @@ class SystemOperationsService {
                     break;
                 case 'add':
                     if (!Array.isArray(operation.value)) {
-                        throw new errors_js_1.AEMException('Value must be an array for add operation', 'VALIDATION_ERROR', false);
+                        throw new AEMException('Value must be an array for add operation', 'VALIDATION_ERROR', false);
                     }
                     operation.value.forEach((item, index) => {
                         formData.append(`${operation.property}[+]`, this.formatPropertyValue(item, operation.type));
@@ -198,14 +196,14 @@ class SystemOperationsService {
                     break;
                 case 'remove':
                     if (!Array.isArray(operation.value)) {
-                        throw new errors_js_1.AEMException('Value must be an array for remove operation', 'VALIDATION_ERROR', false);
+                        throw new AEMException('Value must be an array for remove operation', 'VALIDATION_ERROR', false);
                     }
                     operation.value.forEach((item) => {
                         formData.append(`${operation.property}[-]`, this.formatPropertyValue(item, operation.type));
                     });
                     break;
                 default:
-                    throw new errors_js_1.AEMException(`Invalid operation: ${operation.operation}`, 'VALIDATION_ERROR', false);
+                    throw new AEMException(`Invalid operation: ${operation.operation}`, 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 context: {
@@ -215,7 +213,7 @@ class SystemOperationsService {
             };
             const response = await this.client.post(operation.path, formData, requestOptions);
             if (!response.success) {
-                throw new errors_js_1.AEMException(`Failed to manipulate JCR property ${operation.property} at ${operation.path}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to manipulate JCR property ${operation.property} at ${operation.path}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = {
                 success: true,
@@ -246,10 +244,10 @@ class SystemOperationsService {
                 path: operation.path,
                 property: operation.property
             });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while manipulating JCR property ${operation.property} at ${operation.path}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, operation });
+            throw new AEMException(`Unexpected error while manipulating JCR property ${operation.property} at ${operation.path}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, operation });
         }
     }
     /**
@@ -284,7 +282,7 @@ class SystemOperationsService {
         };
         const response = await this.client.post(`${path}.modifyAce.html`, formData, requestOptions);
         if (!response.success) {
-            throw new errors_js_1.AEMException(`Failed to apply ACL entry for principal: ${entry.principal}`, 'SERVER_ERROR', true, undefined, { response });
+            throw new AEMException(`Failed to apply ACL entry for principal: ${entry.principal}`, 'SERVER_ERROR', true, undefined, { response });
         }
     }
     /**
@@ -301,7 +299,7 @@ class SystemOperationsService {
         };
         const response = await this.client.post(`${path}.deleteAce.html`, formData, requestOptions);
         if (!response.success) {
-            throw new errors_js_1.AEMException(`Failed to clear ACL for path: ${path}`, 'SERVER_ERROR', true, undefined, { response });
+            throw new AEMException(`Failed to clear ACL for path: ${path}`, 'SERVER_ERROR', true, undefined, { response });
         }
     }
     /**
@@ -384,5 +382,4 @@ class SystemOperationsService {
         }
     }
 }
-exports.SystemOperationsService = SystemOperationsService;
 //# sourceMappingURL=system-operations-service.js.map

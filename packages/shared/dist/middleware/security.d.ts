@@ -7,14 +7,26 @@ export interface SecurityMiddlewareOptions {
     enableInputValidation?: boolean;
     enableAuditLogging?: boolean;
     enableRateLimit?: boolean;
+    enableApiKeyAuth?: boolean;
+    enableIPAllowlist?: boolean;
     maxRequestSize?: string;
     allowedFileTypes?: string[];
     maxFileSize?: number;
+    allowedIPs?: string[];
+    apiKeys?: string[];
 }
 export declare class SecurityMiddleware {
     private logger;
     private config;
     constructor(options?: SecurityMiddlewareOptions);
+    /**
+     * API key validation middleware
+     */
+    validateApiKey(): (req: Request, res: Response, next: NextFunction) => void;
+    /**
+     * IP allowlisting middleware
+     */
+    validateIPAllowlist(): (req: Request, res: Response, next: NextFunction) => void;
     /**
      * Create rate limiting middleware
      */
@@ -83,6 +95,22 @@ export declare class SecurityMiddleware {
      * Parse size string to bytes
      */
     private parseSize;
+    /**
+     * Get client IP address from request
+     */
+    private getClientIP;
+    /**
+     * Check if client IP is allowed
+     */
+    private isIPAllowed;
+    /**
+     * Check if IP is within CIDR range
+     */
+    private isIPInCIDR;
+    /**
+     * Convert IP address to number
+     */
+    private ipToNumber;
 }
 /**
  * Factory function to create security middleware with default configuration
@@ -92,6 +120,8 @@ export declare function createSecurityMiddleware(options?: SecurityMiddlewareOpt
  * Express middleware factory functions
  */
 export declare function createSecurityMiddlewares(options?: SecurityMiddlewareOptions): {
+    validateApiKey: (req: Request, res: Response, next: NextFunction) => void;
+    validateIPAllowlist: (req: Request, res: Response, next: NextFunction) => void;
     rateLimit: (_req: Request, _res: Response, next: NextFunction) => void;
     validateInput: (req: Request, res: Response, next: NextFunction) => void;
     preventPathTraversal: (req: Request, res: Response, next: NextFunction) => void;

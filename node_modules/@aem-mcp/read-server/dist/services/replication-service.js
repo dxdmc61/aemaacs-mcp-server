@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Replication Service for AEMaaCS read operations
  * Handles distribution agents, publish logs, replication status, and queue monitoring
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ReplicationService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class ReplicationService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class ReplicationService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Get distribution agents for agent discovery
@@ -29,7 +26,7 @@ class ReplicationService {
             // Get distribution agents
             const response = await this.client.get('/libs/sling/distribution/services/agents.json', undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get distribution agents', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get distribution agents', 'SERVER_ERROR', true, undefined, { response });
             }
             const agents = this.parseDistributionAgentsResponse(response.data);
             this.logger.debug('Successfully retrieved distribution agents', {
@@ -48,10 +45,10 @@ class ReplicationService {
         }
         catch (error) {
             this.logger.error('Failed to get distribution agents', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting distribution agents', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting distribution agents', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -89,7 +86,7 @@ class ReplicationService {
             };
             const response = await this.client.get('/bin/replication/agents.publish/log.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get publish agent logs', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get publish agent logs', 'SERVER_ERROR', true, undefined, { response });
             }
             const logs = this.parsePublishAgentLogsResponse(response.data);
             this.logger.debug('Successfully retrieved publish agent logs', {
@@ -108,10 +105,10 @@ class ReplicationService {
         }
         catch (error) {
             this.logger.error('Failed to get publish agent logs', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting publish agent logs', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting publish agent logs', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -121,7 +118,7 @@ class ReplicationService {
         try {
             this.logger.debug('Getting replication status', { contentPath });
             if (!contentPath) {
-                throw new errors_js_1.AEMException('Content path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Content path is required', 'VALIDATION_ERROR', false);
             }
             const requestOptions = {
                 cache: true,
@@ -134,7 +131,7 @@ class ReplicationService {
             // Get replication status
             const response = await this.client.get('/bin/replicate.json', { path: contentPath, cmd: 'status' }, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to get replication status for ${contentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to get replication status for ${contentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const replicationStatus = this.parseReplicationStatusResponse(response.data, contentPath);
             this.logger.debug('Successfully retrieved replication status', {
@@ -154,10 +151,10 @@ class ReplicationService {
         }
         catch (error) {
             this.logger.error('Failed to get replication status', error, { contentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting replication status for ${contentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, contentPath });
+            throw new AEMException(`Unexpected error while getting replication status for ${contentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, contentPath });
         }
     }
     /**
@@ -188,7 +185,7 @@ class ReplicationService {
             };
             const response = await this.client.get('/bin/replication/queue.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get replication queue', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get replication queue', 'SERVER_ERROR', true, undefined, { response });
             }
             const queues = this.parseReplicationQueueResponse(response.data);
             this.logger.debug('Successfully retrieved replication queue', {
@@ -207,10 +204,10 @@ class ReplicationService {
         }
         catch (error) {
             this.logger.error('Failed to get replication queue', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting replication queue', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting replication queue', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -481,5 +478,4 @@ class ReplicationService {
         return 'pending';
     }
 }
-exports.ReplicationService = ReplicationService;
 //# sourceMappingURL=replication-service.js.map

@@ -2,8 +2,8 @@
  * Component Analysis Service for AEMaaCS read operations
  * Handles component discovery, text extraction, and image reference extraction
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 import { ContentDiscoveryService } from './content-discovery-service.js';
 export interface ComponentInfo {
     path: string;

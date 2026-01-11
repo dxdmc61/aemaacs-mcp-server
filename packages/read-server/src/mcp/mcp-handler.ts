@@ -3,9 +3,9 @@
  * Handles MCP tool discovery, schema generation, and tool execution
  */
 
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 
 // Import all read services
 import { PackageService } from '../services/package-service.js';
@@ -508,9 +508,7 @@ export class MCPHandler {
           });
           break;
         case 'aem_get_page_content':
-          result = await this.services.contentDiscovery.getPageContent(args.pagePath, {
-            depth: args.depth
-          });
+          result = await this.services.contentDiscovery.getPageContent(args.pagePath);
           break;
         case 'aem_get_page_properties':
           result = await this.services.contentDiscovery.getPageProperties(args.pagePath);
@@ -518,14 +516,10 @@ export class MCPHandler {
 
         // Component Analysis
         case 'aem_scan_page_components':
-          result = await this.services.componentAnalysis.scanPageComponents(args.pagePath, {
-            includeInherited: args.includeInherited
-          });
+          result = await this.services.componentAnalysis.scanPageComponents(args.pagePath);
           break;
         case 'aem_get_page_text_content':
-          result = await this.services.componentAnalysis.getPageTextContent(args.pagePath, {
-            includeHidden: args.includeHidden
-          });
+          result = await this.services.componentAnalysis.getPageTextContent(args.pagePath);
           break;
         case 'aem_get_page_images':
           result = await this.services.componentAnalysis.getPageImages(args.pagePath);
@@ -533,15 +527,18 @@ export class MCPHandler {
 
         // Search and Query
         case 'aem_search_content':
-          result = await this.services.searchQuery.searchContent(args.query, {
+          result = await this.services.searchQuery.searchContent({
+            fulltext: args.query,
             path: args.path,
             type: args.type,
             limit: args.limit
           });
           break;
         case 'aem_search_assets':
-          result = await this.services.searchQuery.searchAssets(args.query, {
+          result = await this.services.searchQuery.searchAssets({
+            path: args.path,
             mimeType: args.mimeType,
+            tags: args.tags,
             limit: args.limit
           });
           break;
@@ -590,7 +587,8 @@ export class MCPHandler {
 
         // Asset Management
         case 'aem_list_assets':
-          result = await this.services.assetManagement.listAssets(args.path || '/content/dam', {
+          result = await this.services.assetManagement.listAssets({
+            path: args.path || '/content/dam',
             mimeType: args.mimeType,
             limit: args.limit
           });
@@ -605,8 +603,8 @@ export class MCPHandler {
         // User Administration
         case 'aem_list_users':
           result = await this.services.userAdministration.listUsers({
-            group: args.group,
-            limit: args.limit
+            path: args.path,
+            query: args.query
           });
           break;
         case 'aem_list_groups':
@@ -643,7 +641,8 @@ export class MCPHandler {
           break;
         case 'aem_list_async_jobs':
           result = await this.services.systemOperations.getAsyncJobs({
-            status: args.status
+            state: args.status,
+            limit: args.limit
           });
           break;
 

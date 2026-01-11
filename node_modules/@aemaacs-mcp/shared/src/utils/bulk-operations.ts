@@ -238,8 +238,10 @@ export class BulkOperationsManager {
     try {
       // Process items in batches
       for (let batchIndex = 0; batchIndex < job.progress.totalBatches; batchIndex++) {
-        // Check if job was cancelled
-        if (job.status === 'cancelled') {
+        // Check if job was cancelled (status can be changed externally by cancelJob)
+        const currentStatus = this.activeJobs.get(job.id)?.status;
+        if (currentStatus === 'cancelled') {
+          job.status = 'cancelled';
           break;
         }
 

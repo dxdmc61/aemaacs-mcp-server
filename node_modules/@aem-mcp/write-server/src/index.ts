@@ -5,9 +5,25 @@
  * Supports both MCP protocol over STDIO and HTTP REST API with enhanced security
  */
 
-import { AEMHttpClient } from '../../shared/src/client/aem-http-client.js';
-import { ConfigManager } from '../../shared/src/config/server-config.js';
-import { Logger } from '../../shared/src/utils/logger.js';
+// Load environment variables from .env file FIRST
+// Set DOTENV_CONFIG_SILENT before importing to suppress any console output
+process.env.DOTENV_CONFIG_SILENT = 'true';
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+import { readFileSync, existsSync } from 'fs';
+
+// Manually load .env to avoid dotenv v17's console output
+const envPath = resolve(process.cwd(), '.env');
+if (existsSync(envPath)) {
+  const envConfig = dotenv.parse(readFileSync(envPath));
+  for (const key in envConfig) {
+    if (process.env[key] === undefined) {
+      process.env[key] = envConfig[key];
+    }
+  }
+}
+
+import { AEMHttpClient, ConfigManager, Logger } from '@aemaacs-mcp/shared';
 import { STDIOHandler } from './mcp/stdio-handler.js';
 
 async function main() {
@@ -30,19 +46,11 @@ async function main() {
       logger.warn('DANGEROUS OPERATIONS ARE ENABLED - Use with caution in production!');
     }
 
-    // Initialize AEM HTTP client
+    // Initialize AEM HTTP client (uses ConfigManager internally for AEM connection config)
     const client = new AEMHttpClient({
-      baseURL: `${config.aem.protocol}://${config.aem.host}:${config.aem.port}`,
-      timeout: config.aem.timeout,
-      retryAttempts: config.aem.retryAttempts,
-      retryDelay: config.aem.retryDelay,
-      auth: {
-        username: config.aem.username,
-        password: config.aem.password,
-        clientId: config.aem.clientId,
-        clientSecret: config.aem.clientSecret,
-        accessToken: config.aem.accessToken
-      }
+      enableCircuitBreaker: true,
+      enableCaching: false, // Disable caching for write operations
+      enableRetry: true
     });
 
     // Check if running in STDIO mode (for MCP)

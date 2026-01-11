@@ -174,11 +174,11 @@ export class ConfigManager {
       host,
       port: this.getEnvNumber('AEM_PORT', 4502),
       protocol: this.getEnvString('AEM_PROTOCOL', 'https') as 'http' | 'https',
-      username: this.getEnvString('AEM_USERNAME'),
-      password: this.getEnvString('AEM_PASSWORD'),
-      clientId: this.getEnvString('AEM_CLIENT_ID'),
-      clientSecret: this.getEnvString('AEM_CLIENT_SECRET'),
-      accessToken: this.getEnvString('AEM_ACCESS_TOKEN'),
+      username: process.env.AEM_USERNAME,
+      password: process.env.AEM_PASSWORD,
+      clientId: process.env.AEM_CLIENT_ID,
+      clientSecret: process.env.AEM_CLIENT_SECRET,
+      accessToken: process.env.AEM_ACCESS_TOKEN,
       timeout: this.getEnvNumber('AEM_TIMEOUT', 30000),
       retryAttempts: this.getEnvNumber('AEM_RETRY_ATTEMPTS', 3),
       retryDelay: this.getEnvNumber('AEM_RETRY_DELAY', 1000)
@@ -192,7 +192,7 @@ export class ConfigManager {
     return {
       level: this.getEnvString('LOG_LEVEL', 'info') as 'debug' | 'info' | 'warn' | 'error',
       format: this.getEnvString('LOG_FORMAT', 'json') as 'json' | 'text',
-      file: this.getEnvString('LOG_FILE')
+      file: process.env.LOG_FILE
     };
   }
 

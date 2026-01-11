@@ -2,8 +2,8 @@
  * User Administration Service for AEMaaCS write operations
  * Handles user and group creation, deletion, and membership management
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface UserProfile {
     givenName?: string;
     familyName?: string;

@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Component Operations Service for AEMaaCS write operations
  * Handles component creation, updating, deletion, bulk updates, validation, and image path updates
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ComponentOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class ComponentOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class ComponentOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Create component for component creation
@@ -19,7 +16,7 @@ class ComponentOperationsService {
         try {
             this.logger.debug('Creating component', { pagePath, containerPath, options });
             if (!pagePath || !containerPath || !options.resourceType) {
-                throw new errors_js_1.AEMException('Page path, container path, and resource type are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path, container path, and resource type are required', 'VALIDATION_ERROR', false);
             }
             // Generate component name if not provided
             const componentName = options.name || this.generateComponentName(options.resourceType);
@@ -57,7 +54,7 @@ class ComponentOperationsService {
             };
             const response = await this.client.post(componentPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to create component', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to create component', 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseComponentOperationResponse(response.data, componentPath);
             this.logger.debug('Successfully created component', {
@@ -76,10 +73,10 @@ class ComponentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to create component', error, { pagePath, containerPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while creating component', 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath, containerPath });
+            throw new AEMException('Unexpected error while creating component', 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath, containerPath });
         }
     }
     /**
@@ -89,13 +86,13 @@ class ComponentOperationsService {
         try {
             this.logger.debug('Updating component', { componentPath, properties, options });
             if (!componentPath || !properties || Object.keys(properties).length === 0) {
-                throw new errors_js_1.AEMException('Component path and properties are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Component path and properties are required', 'VALIDATION_ERROR', false);
             }
             // Validate component before update if requested
             if (options.validateBeforeUpdate) {
                 const validation = await this.validateComponent(componentPath, properties);
                 if (!validation.valid) {
-                    throw new errors_js_1.AEMException(`Component validation failed: ${validation.errors.join(', ')}`, 'VALIDATION_ERROR', false, undefined, { validationErrors: validation.errors });
+                    throw new AEMException(`Component validation failed: ${validation.errors.join(', ')}`, 'VALIDATION_ERROR', false, undefined, { validationErrors: validation.errors });
                 }
             }
             const formData = new FormData();
@@ -127,7 +124,7 @@ class ComponentOperationsService {
             };
             const response = await this.client.post(componentPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to update component: ${componentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to update component: ${componentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseComponentOperationResponse(response.data, componentPath);
             this.logger.debug('Successfully updated component', {
@@ -146,10 +143,10 @@ class ComponentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to update component', error, { componentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while updating component: ${componentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, componentPath });
+            throw new AEMException(`Unexpected error while updating component: ${componentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, componentPath });
         }
     }
     /**
@@ -159,11 +156,11 @@ class ComponentOperationsService {
         try {
             this.logger.debug('Deleting component', { componentPath, options });
             if (!componentPath) {
-                throw new errors_js_1.AEMException('Component path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Component path is required', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent deletion of critical components
             if (this.isCriticalComponent(componentPath)) {
-                throw new errors_js_1.AEMException(`Cannot delete critical component: ${componentPath}`, 'VALIDATION_ERROR', false);
+                throw new AEMException(`Cannot delete critical component: ${componentPath}`, 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append(':operation', 'delete');
@@ -181,7 +178,7 @@ class ComponentOperationsService {
             };
             const response = await this.client.post(componentPath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to delete component: ${componentPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete component: ${componentPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseComponentOperationResponse(response.data, componentPath);
             this.logger.debug('Successfully deleted component', {
@@ -200,10 +197,10 @@ class ComponentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to delete component', error, { componentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting component: ${componentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, componentPath });
+            throw new AEMException(`Unexpected error while deleting component: ${componentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, componentPath });
         }
     }
     /**
@@ -213,7 +210,7 @@ class ComponentOperationsService {
         try {
             this.logger.debug('Bulk updating components', { updateCount: updates.length, options });
             if (!updates || updates.length === 0) {
-                throw new errors_js_1.AEMException('At least one component update is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('At least one component update is required', 'VALIDATION_ERROR', false);
             }
             const batchSize = options.batchSize || 10;
             const results = [];
@@ -282,10 +279,10 @@ class ComponentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to bulk update components', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while bulk updating components', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while bulk updating components', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -363,11 +360,11 @@ class ComponentOperationsService {
         try {
             this.logger.debug('Updating image path', { componentPath, newImagePath, imageProperty });
             if (!componentPath || !newImagePath) {
-                throw new errors_js_1.AEMException('Component path and new image path are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Component path and new image path are required', 'VALIDATION_ERROR', false);
             }
             // Validate that the new image path exists and is an asset
             if (!newImagePath.startsWith('/content/dam/')) {
-                throw new errors_js_1.AEMException('Image path must be a DAM asset path starting with /content/dam/', 'VALIDATION_ERROR', false);
+                throw new AEMException('Image path must be a DAM asset path starting with /content/dam/', 'VALIDATION_ERROR', false);
             }
             const properties = {
                 [imageProperty]: newImagePath
@@ -385,10 +382,10 @@ class ComponentOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to update image path', error, { componentPath, newImagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while updating image path: ${componentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, componentPath, newImagePath });
+            throw new AEMException(`Unexpected error while updating image path: ${componentPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, componentPath, newImagePath });
         }
     }
     /**
@@ -468,7 +465,7 @@ class ComponentOperationsService {
             return response.success ? response.data : {};
         }
         catch (error) {
-            this.logger.warn('Could not get component state for rollback', error, { componentPath });
+            this.logger.warn('Could not get component state for rollback', { componentPath, error: error.message });
             return {};
         }
     }
@@ -499,5 +496,4 @@ class ComponentOperationsService {
         }
     }
 }
-exports.ComponentOperationsService = ComponentOperationsService;
 //# sourceMappingURL=component-operations-service.js.map

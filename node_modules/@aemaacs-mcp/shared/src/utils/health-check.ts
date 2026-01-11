@@ -183,7 +183,7 @@ export class HealthCheckService {
         components: {
           server: { status: 'unhealthy', message: 'Health check failed', last_check: new Date().toISOString() },
           aem: { status: 'unhealthy', message: 'Health check failed', last_check: new Date().toISOString() },
-          cache: { listeners: 'unhealthy', message: 'Health check failed', last_check: new Date().toISOString() },
+          cache: { status: 'unhealthy', message: 'Health check failed', last_check: new Date().toISOString() },
           security: { status: 'unhealthy', message: 'Health check failed', last_check: new Date().toISOString() },
           metrics: { status: 'unhealthy', message: 'Health check failed', last_check: new Date().toISOString() }
         },

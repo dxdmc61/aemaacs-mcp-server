@@ -8,6 +8,7 @@ import { MCPError, MCPErrorCode } from '../types/mcp.js';
 export class AEMException extends Error {
   public readonly code: string;
   public readonly recoverable: boolean;
+  public readonly retryable: boolean;
   public readonly retryAfter?: number | undefined;
   public readonly details?: Record<string, any> | undefined;
 
@@ -22,6 +23,7 @@ export class AEMException extends Error {
     this.name = 'AEMException';
     this.code = code;
     this.recoverable = recoverable;
+    this.retryable = recoverable; // alias for recoverable
     this.retryAfter = retryAfter;
     this.details = details;
   }

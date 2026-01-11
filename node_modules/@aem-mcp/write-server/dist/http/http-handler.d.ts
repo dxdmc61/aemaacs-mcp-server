@@ -2,8 +2,8 @@
  * HTTP REST API Handler for Write Server
  * Provides JSON-RPC 2.0 compliant endpoints for AEM write operations with enhanced security
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { WriteServerConfig } from '../../../shared/src/config/server-config.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { WriteServerConfig } from '@aemaacs-mcp/shared';
 export interface JSONRPCRequest {
     jsonrpc: '2.0';
     method: string;

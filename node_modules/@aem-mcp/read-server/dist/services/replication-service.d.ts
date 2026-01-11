@@ -2,8 +2,8 @@
  * Replication Service for AEMaaCS read operations
  * Handles distribution agents, publish logs, replication status, and queue monitoring
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
 export interface DistributionAgent {
     id: string;
     name: string;

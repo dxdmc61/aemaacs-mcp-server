@@ -3,10 +3,10 @@
  * Handles component creation, updating, deletion, bulk updates, validation, and image path updates
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface CreateComponentOptions {
   resourceType: string;
@@ -712,7 +712,7 @@ export class ComponentOperationsService {
       const response = await this.client.get<any>(`${componentPath}.json`);
       return response.success ? response.data : {};
     } catch (error) {
-      this.logger.warn('Could not get component state for rollback', error as Error, { componentPath });
+      this.logger.warn('Could not get component state for rollback', { componentPath, error: (error as Error).message });
       return {};
     }
   }

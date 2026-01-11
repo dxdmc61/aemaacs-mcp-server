@@ -3,10 +3,10 @@
  * Handles inbox task completion, status updates, and cleanup operations
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface CompleteInboxTaskOptions {
   comment?: string;
@@ -449,7 +449,7 @@ export class InboxOperationsService {
 
       return [];
     } catch (error) {
-      this.logger.warn('Failed to get cleanup items', error as Error, { itemType, status });
+      this.logger.warn('Failed to get cleanup items', { itemType, status, error: (error as Error).message });
       return [];
     }
   }
@@ -471,7 +471,7 @@ export class InboxOperationsService {
 
       return response.success && response.data && response.data.success !== false;
     } catch (error) {
-      this.logger.warn('Failed to cleanup item', error as Error, { itemId: item.id });
+      this.logger.warn('Failed to cleanup item', { itemId: item.id, error: (error as Error).message });
       return false;
     }
   }

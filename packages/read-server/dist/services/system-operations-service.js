@@ -1,16 +1,13 @@
-"use strict";
 /**
  * System Operations Service for AEMaaCS read operations
  * Handles async jobs, system health, system info, bundle status, and log files
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SystemOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class SystemOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class SystemOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Get async jobs for job monitoring
@@ -40,7 +37,7 @@ class SystemOperationsService {
             };
             const response = await this.client.get('/system/console/slingevent.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get async jobs', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get async jobs', 'SERVER_ERROR', true, undefined, { response });
             }
             const jobs = this.parseAsyncJobsResponse(response.data);
             this.logger.debug('Successfully retrieved async jobs', {
@@ -59,10 +56,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to get async jobs', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting async jobs', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting async jobs', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -81,7 +78,7 @@ class SystemOperationsService {
             };
             const response = await this.client.get('/system/health.json', undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get system health', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get system health', 'SERVER_ERROR', true, undefined, { response });
             }
             const systemHealth = this.parseSystemHealthResponse(response.data);
             this.logger.debug('Successfully retrieved system health', {
@@ -101,10 +98,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to get system health', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting system health', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting system health', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -123,7 +120,7 @@ class SystemOperationsService {
             };
             const response = await this.client.get('/system/console/status-System%20Properties.json', undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get system info', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get system info', 'SERVER_ERROR', true, undefined, { response });
             }
             const systemInfo = this.parseSystemInfoResponse(response.data);
             this.logger.debug('Successfully retrieved system info', {
@@ -143,10 +140,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to get system info', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting system info', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting system info', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -165,7 +162,7 @@ class SystemOperationsService {
             };
             const response = await this.client.get('/system/console/bundles.json', undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get bundle status', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get bundle status', 'SERVER_ERROR', true, undefined, { response });
             }
             const bundleStatus = this.parseBundleStatusResponse(response.data);
             this.logger.debug('Successfully retrieved bundle status', {
@@ -185,10 +182,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to get bundle status', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting bundle status', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting bundle status', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -216,7 +213,7 @@ class SystemOperationsService {
             };
             const response = await this.client.get('/system/console/slinglog/files.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to get log files', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to get log files', 'SERVER_ERROR', true, undefined, { response });
             }
             const logFiles = this.parseLogFilesResponse(response.data);
             this.logger.debug('Successfully retrieved log files', {
@@ -235,10 +232,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to get log files', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while getting log files', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while getting log files', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -248,7 +245,7 @@ class SystemOperationsService {
         try {
             this.logger.debug('Getting log file content', { fileName, options });
             if (!fileName) {
-                throw new errors_js_1.AEMException('File name is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('File name is required', 'VALIDATION_ERROR', false);
             }
             const params = {
                 'file': fileName
@@ -273,7 +270,7 @@ class SystemOperationsService {
             };
             const response = await this.client.get('/system/console/slinglog/content.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to get log file content for ${fileName}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to get log file content for ${fileName}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const logFileContent = this.parseLogFileContentResponse(response.data, fileName);
             this.logger.debug('Successfully retrieved log file content', {
@@ -293,10 +290,10 @@ class SystemOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to get log file content', error, { fileName });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting log file content for ${fileName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fileName });
+            throw new AEMException(`Unexpected error while getting log file content for ${fileName}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, fileName });
         }
     }
     /**
@@ -580,5 +577,4 @@ class SystemOperationsService {
         return 'other';
     }
 }
-exports.SystemOperationsService = SystemOperationsService;
 //# sourceMappingURL=system-operations-service.js.map

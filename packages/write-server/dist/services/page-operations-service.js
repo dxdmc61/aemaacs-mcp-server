@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Page Operations Service for AEMaaCS write operations
  * Handles page creation, copying, moving, deletion, locking, and property updates
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PageOperationsService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class PageOperationsService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class PageOperationsService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * Create page with template integration
@@ -19,11 +16,11 @@ class PageOperationsService {
         try {
             this.logger.debug('Creating page', { parentPath, pageName, options });
             if (!parentPath || !pageName || !options.template) {
-                throw new errors_js_1.AEMException('Parent path, page name, and template are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Parent path, page name, and template are required', 'VALIDATION_ERROR', false);
             }
             // Validate page name
             if (!this.isValidPageName(pageName)) {
-                throw new errors_js_1.AEMException('Invalid page name. Page names must not contain special characters', 'VALIDATION_ERROR', false);
+                throw new AEMException('Invalid page name. Page names must not contain special characters', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('cmd', 'createPage');
@@ -53,7 +50,7 @@ class PageOperationsService {
             };
             const response = await this.client.post('/bin/wcmcommand', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to create page', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to create page', 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parsePageOperationResponse(response.data, `${parentPath}/${pageName}`);
             this.logger.debug('Successfully created page', {
@@ -73,10 +70,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to create page', error, { parentPath, pageName });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while creating page', 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, pageName });
+            throw new AEMException('Unexpected error while creating page', 'UNKNOWN_ERROR', false, undefined, { originalError: error, parentPath, pageName });
         }
     }
     /**
@@ -86,7 +83,7 @@ class PageOperationsService {
         try {
             this.logger.debug('Copying page', { srcPath, destParentPath, options });
             if (!srcPath || !destParentPath) {
-                throw new errors_js_1.AEMException('Source path and destination parent path are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Source path and destination parent path are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('cmd', 'copyPage');
@@ -112,7 +109,7 @@ class PageOperationsService {
             };
             const response = await this.client.post('/bin/wcmcommand', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to copy page: ${srcPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to copy page: ${srcPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const destName = options.destName || srcPath.split('/').pop();
             const destPath = `${destParentPath}/${destName}`;
@@ -133,10 +130,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to copy page', error, { srcPath, destParentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while copying page: ${srcPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, srcPath, destParentPath });
+            throw new AEMException(`Unexpected error while copying page: ${srcPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, srcPath, destParentPath });
         }
     }
     /**
@@ -146,7 +143,7 @@ class PageOperationsService {
         try {
             this.logger.debug('Moving page', { srcPath, destParentPath, options });
             if (!srcPath || !destParentPath) {
-                throw new errors_js_1.AEMException('Source path and destination parent path are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Source path and destination parent path are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('cmd', 'movePage');
@@ -172,7 +169,7 @@ class PageOperationsService {
             };
             const response = await this.client.post('/bin/wcmcommand', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to move page: ${srcPath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to move page: ${srcPath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const destName = options.destName || srcPath.split('/').pop();
             const destPath = `${destParentPath}/${destName}`;
@@ -193,10 +190,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to move page', error, { srcPath, destParentPath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while moving page: ${srcPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, srcPath, destParentPath });
+            throw new AEMException(`Unexpected error while moving page: ${srcPath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, srcPath, destParentPath });
         }
     }
     /**
@@ -206,7 +203,7 @@ class PageOperationsService {
         try {
             this.logger.debug('Bulk moving pages', { moveCount: moves.length, options });
             if (!moves || moves.length === 0) {
-                throw new errors_js_1.AEMException('At least one page move operation is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('At least one page move operation is required', 'VALIDATION_ERROR', false);
             }
             const batchSize = options.batchSize || 10;
             const results = [];
@@ -267,10 +264,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to bulk move pages', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while bulk moving pages', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while bulk moving pages', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -280,11 +277,11 @@ class PageOperationsService {
         try {
             this.logger.debug('Deleting page', { pagePath, options });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             // Safety check: prevent deletion of important system pages
             if (this.isSystemPage(pagePath)) {
-                throw new errors_js_1.AEMException(`Cannot delete system page: ${pagePath}`, 'VALIDATION_ERROR', false, undefined, { pagePath });
+                throw new AEMException(`Cannot delete system page: ${pagePath}`, 'VALIDATION_ERROR', false, undefined, { pagePath });
             }
             const formData = new FormData();
             formData.append(':operation', 'delete');
@@ -302,7 +299,7 @@ class PageOperationsService {
             };
             const response = await this.client.post(pagePath, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to delete page: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to delete page: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parsePageOperationResponse(response.data, pagePath);
             this.logger.debug('Successfully deleted page', {
@@ -321,10 +318,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to delete page', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while deleting page: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while deleting page: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -334,7 +331,7 @@ class PageOperationsService {
         try {
             this.logger.debug('Locking page', { pagePath, deep });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('cmd', 'lockPage');
@@ -350,7 +347,7 @@ class PageOperationsService {
             };
             const response = await this.client.post('/bin/wcmcommand', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to lock page: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to lock page: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseLockResponse(response.data, pagePath, deep);
             this.logger.debug('Successfully locked page', {
@@ -369,10 +366,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to lock page', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while locking page: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while locking page: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -382,7 +379,7 @@ class PageOperationsService {
         try {
             this.logger.debug('Unlocking page', { pagePath, force });
             if (!pagePath) {
-                throw new errors_js_1.AEMException('Page path is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path is required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             formData.append('cmd', 'unlockPage');
@@ -398,7 +395,7 @@ class PageOperationsService {
             };
             const response = await this.client.post('/bin/wcmcommand', formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to unlock page: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to unlock page: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parseUnlockResponse(response.data, pagePath);
             this.logger.debug('Successfully unlocked page', {
@@ -417,10 +414,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to unlock page', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while unlocking page: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while unlocking page: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -430,7 +427,7 @@ class PageOperationsService {
         try {
             this.logger.debug('Updating page properties', { pagePath, properties, options });
             if (!pagePath || !properties || Object.keys(properties).length === 0) {
-                throw new errors_js_1.AEMException('Page path and properties are required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Page path and properties are required', 'VALIDATION_ERROR', false);
             }
             const formData = new FormData();
             // Add properties to form data
@@ -461,7 +458,7 @@ class PageOperationsService {
             };
             const response = await this.client.post(`${pagePath}/jcr:content`, formData, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to update page properties: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to update page properties: ${pagePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const result = this.parsePageOperationResponse(response.data, pagePath);
             this.logger.debug('Successfully updated page properties', {
@@ -480,10 +477,10 @@ class PageOperationsService {
         }
         catch (error) {
             this.logger.error('Failed to update page properties', error, { pagePath });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while updating page properties: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
+            throw new AEMException(`Unexpected error while updating page properties: ${pagePath}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, pagePath });
         }
     }
     /**
@@ -569,5 +566,4 @@ class PageOperationsService {
             pagePath.split('/').length <= 2; // Protect root level pages
     }
 }
-exports.PageOperationsService = PageOperationsService;
 //# sourceMappingURL=page-operations-service.js.map

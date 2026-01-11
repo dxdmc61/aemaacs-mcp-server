@@ -3,10 +3,10 @@
  * Handles page listing, content retrieval, and JCR node traversal
  */
 
-import { AEMHttpClient, RequestOptions } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, ContentNode, Page } from '../../../shared/src/types/aem.js';
-import { Logger } from '../../../shared/src/utils/logger.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient, RequestOptions } from '@aemaacs-mcp/shared';
+import { AEMResponse, ContentNode, Page } from '@aemaacs-mcp/shared';
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 export interface ListPagesOptions {
   depth?: number;
@@ -96,19 +96,43 @@ export class ContentDiscoveryService {
         }
       };
 
+      // Use the standard AEM JSON export with depth selector
+      const jsonPath = `${rootPath}.${params.depth}.json`;
+      
       const response = await this.client.get<any>(
-        '/bin/wcm/contentsync/content.json',
-        params,
+        jsonPath,
+        {},
         requestOptions
       );
 
+      // Log detailed response for debugging
+      this.logger.debug('AEM listPages response', {
+        rootPath,
+        jsonPath,
+        success: response.success,
+        hasData: !!response.data,
+        error: response.error,
+        metadata: response.metadata
+      });
+
       if (!response.success || !response.data) {
+        // Log the full error details
+        const listError = new Error(`Failed to list pages at ${rootPath}`);
+        this.logger.error('Failed to list pages - response details', listError, {
+          rootPath,
+          jsonPath,
+          responseSuccess: response.success,
+          responseError: response.error,
+          responseData: response.data,
+          metadata: response.metadata
+        });
+        
         throw new AEMException(
           `Failed to list pages at ${rootPath}`,
-          'SERVER_ERROR',
-          true,
-          undefined,
-          { response }
+          response.error?.code || 'SERVER_ERROR',
+          response.error?.recoverable !== false,
+          response.error?.retryAfter,
+          { response, jsonPath }
         );
       }
 

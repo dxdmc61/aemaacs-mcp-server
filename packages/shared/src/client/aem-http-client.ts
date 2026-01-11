@@ -219,6 +219,63 @@ export class AEMHttpClient {
         );
       }
 
+      // Check HTTP status code - axios doesn't throw on 4xx by default
+      if (response.status >= 400) {
+        const errorMessage = response.status === 401 || response.status === 403
+          ? `Authentication failed (HTTP ${response.status})`
+          : `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
+        
+        const httpError = new Error(`HTTP ${response.status}: ${response.statusText || 'Request failed'}`);
+        this.logger.error('AEM HTTP error response', httpError, {
+          requestId: context.requestId,
+          status: response.status,
+          statusText: response.statusText,
+          url: response.config?.url,
+          responseBody: typeof response.data === 'string' 
+            ? response.data.substring(0, 500)
+            : JSON.stringify(response.data).substring(0, 500),
+          headers: response.headers
+        });
+
+        throw new AEMException(
+          errorMessage,
+          response.status === 401 || response.status === 403 ? 'AUTHENTICATION_ERROR' : 'SERVER_ERROR',
+          response.status >= 500, // Retry on server errors
+          undefined,
+          {
+            statusCode: response.status,
+            statusText: response.statusText,
+            responseBody: response.data,
+            responseHeaders: response.headers
+          }
+        );
+      }
+
+      // Check if response is HTML (login page) instead of JSON
+      const contentType = response.headers['content-type'] || '';
+      const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+      if (contentType.includes('text/html') || responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        const htmlError = new Error('AEM returned HTML instead of JSON - likely authentication issue');
+        this.logger.error('AEM returned HTML instead of JSON - likely authentication issue', htmlError, {
+          requestId: context.requestId,
+          url: response.config?.url,
+          contentType,
+          responsePreview: responseText.substring(0, 200)
+        });
+
+        throw new AEMException(
+          'Authentication failed: AEM returned login page instead of JSON',
+          'AUTHENTICATION_ERROR',
+          false,
+          undefined,
+          {
+            statusCode: response.status,
+            contentType,
+            responsePreview: responseText.substring(0, 500)
+          }
+        );
+      }
+
       // Process AEM-specific response
       const processedData = this.responseProcessor.processAEMResponse(response.data, context.operation);
 
@@ -290,11 +347,29 @@ export class AEMHttpClient {
         config.headers['X-Request-ID'] = requestId;
         (config as any).metadata = { requestId, startTime: Date.now() };
 
+        // Log request headers for debugging authentication issues
+        const cookieHeader = config.headers?.['Cookie'];
+        const authHeader = config.headers?.['Authorization'];
+        const userAgentHeader = config.headers?.['User-Agent'];
+        
+        const authHeaders = {
+          cookie: (typeof cookieHeader === 'string' && cookieHeader) ? 
+            cookieHeader.substring(0, 100) + '...' : 
+            'NOT SET',
+          authorization: (typeof authHeader === 'string' && authHeader) ? 
+            authHeader.substring(0, 50) + '...' : 
+            'NOT SET',
+          userAgent: (typeof userAgentHeader === 'string' && userAgentHeader) ? 
+            userAgentHeader : 
+            'NOT SET'
+        };
+
         this.logger.debug('AEM request started', {
           requestId,
           method: config.method?.toUpperCase(),
           url: config.url,
-          params: config.params
+          params: config.params,
+          authHeaders
         });
 
         return config;
@@ -330,13 +405,59 @@ export class AEMHttpClient {
         const startTime = (error.config as any)?.metadata?.startTime;
         const duration = startTime ? Date.now() - startTime : 0;
 
+        // Extract response details for better error reporting
+        const statusCode = error.response?.status;
+        const responseData = error.response?.data;
+        const responseHeaders = error.response?.headers;
+        
+        // Extract request headers for debugging
+        const cookieHeader = error.config?.headers?.['Cookie'];
+        const authHeader = error.config?.headers?.['Authorization'];
+        const userAgentHeader = error.config?.headers?.['User-Agent'];
+        
+        const requestHeaders = {
+          cookie: (typeof cookieHeader === 'string' && cookieHeader) ? 
+            cookieHeader.substring(0, 100) + '...' : 
+            'NOT SET',
+          authorization: (typeof authHeader === 'string' && authHeader) ? 
+            authHeader.substring(0, 50) + '...' : 
+            'NOT SET',
+          userAgent: (typeof userAgentHeader === 'string' && userAgentHeader) ? 
+            userAgentHeader : 
+            'NOT SET'
+        };
+
+        // Log detailed error information
         this.logger.error('AEM request failed', error, {
           requestId,
-          status: error.response?.status,
+          status: statusCode,
+          statusText: error.response?.statusText,
           duration,
           url: error.config?.url,
-          message: error.message
+          method: error.config?.method?.toUpperCase(),
+          message: error.message,
+          responseBody: typeof responseData === 'string' 
+            ? responseData.substring(0, 500) // First 500 chars
+            : JSON.stringify(responseData).substring(0, 500),
+          requestHeaders,
+          wwwAuthenticate: responseHeaders?.['www-authenticate'] || 'NOT SET'
         });
+
+        // Convert Axios error to AEMException with more context
+        if (statusCode === 401 || statusCode === 403) {
+          const authException = new AEMException(
+            `Authentication failed: ${error.message}`,
+            'AUTHENTICATION_ERROR',
+            false,
+            undefined,
+            {
+              statusCode,
+              responseBody: responseData,
+              originalError: error
+            }
+          );
+          return Promise.reject(authException);
+        }
 
         return Promise.reject(error);
       }
@@ -347,12 +468,28 @@ export class AEMHttpClient {
    * Ensure authentication is valid
    */
   private async ensureAuthenticated(): Promise<void> {
-    if (this.config.authentication.type === 'basic') {
-      // Basic auth is handled in headers
+    const auth = this.config.authentication;
+    
+    // Token auth - use the provided access token directly, no refresh needed
+    if (auth.type === 'token') {
+      if (!auth.accessToken) {
+        throw new AEMException(
+          'Access token is required for token authentication',
+          'AUTHENTICATION_ERROR',
+          false
+        );
+      }
+      // Token is provided directly, no refresh needed
+      return;
+    }
+    
+    // Basic auth is handled in headers
+    if (auth.type === 'basic') {
       return;
     }
 
-    if (this.config.authentication.type === 'oauth' || this.config.authentication.type === 'service-account') {
+    // OAuth and service-account need token refresh
+    if (auth.type === 'oauth' || auth.type === 'service-account') {
       // Check if token is expired
       if (!this.authToken || (this.tokenExpiry && new Date() >= this.tokenExpiry)) {
         await this.refreshAuthToken();
@@ -538,6 +675,31 @@ export class AEMHttpClient {
     const headers: Record<string, string> = {};
 
     switch (auth.type) {
+      case 'token':
+        // Direct token authentication - for AEMaaCS browser session tokens
+        // Check if a full cookie string is provided via AEM_COOKIES env var
+        const fullCookies = process.env.AEM_COOKIES || (auth as any).cookies;
+        if (fullCookies) {
+          // Use the complete cookie string from browser
+          headers['Cookie'] = fullCookies;
+          // Add User-Agent to match browser requests (AEMaaCS may check this)
+          headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+          
+          // Log cookie presence for debugging (truncated)
+          this.logger.debug('Using cookies for authentication', {
+            cookieLength: fullCookies.length,
+            cookiePreview: fullCookies.substring(0, 50) + '...'
+          });
+        } else if (auth.accessToken) {
+          // Fallback: use just the login-token cookie
+          // Note: This may not work for all AEMaaCS instances that require full IMS auth
+          headers['Cookie'] = `login-token=login:${auth.accessToken}`;
+          headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+          this.logger.debug('Using accessToken for login-token cookie');
+        } else {
+          this.logger.warn('No cookies or accessToken found for token authentication');
+        }
+        break;
       case 'basic':
         if (auth.username && auth.password) {
           const credentials = Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
@@ -546,8 +708,12 @@ export class AEMHttpClient {
         break;
       case 'oauth':
       case 'service-account':
+        // Use refreshed OAuth/service-account token as Bearer
         if (this.authToken) {
           headers['Authorization'] = `Bearer ${this.authToken}`;
+        } else if (auth.accessToken) {
+          // Fallback to provided access token if no refreshed token
+          headers['Authorization'] = `Bearer ${auth.accessToken}`;
         }
         break;
     }

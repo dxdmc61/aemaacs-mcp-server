@@ -1,16 +1,13 @@
-"use strict";
 /**
  * Tag Management Service for AEMaaCS read operations
  * Handles tag namespace discovery, tag hierarchy, and tagged content discovery
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TagManagementService = void 0;
-const logger_js_1 = require("../../../shared/src/utils/logger.js");
-const errors_js_1 = require("../../../shared/src/utils/errors.js");
-class TagManagementService {
+import { Logger } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
+export class TagManagementService {
     constructor(client) {
         this.client = client;
-        this.logger = logger_js_1.Logger.getInstance();
+        this.logger = Logger.getInstance();
     }
     /**
      * List tag namespaces
@@ -29,7 +26,7 @@ class TagManagementService {
             // Get tag namespaces from the tag root
             const response = await this.client.get('/content/cq:tags.1.json', undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException('Failed to list tag namespaces', 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException('Failed to list tag namespaces', 'SERVER_ERROR', true, undefined, { response });
             }
             const namespaces = this.parseTagNamespacesResponse(response.data);
             this.logger.debug('Successfully listed tag namespaces', {
@@ -48,10 +45,10 @@ class TagManagementService {
         }
         catch (error) {
             this.logger.error('Failed to list tag namespaces', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while listing tag namespaces', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while listing tag namespaces', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -77,7 +74,7 @@ class TagManagementService {
             // Get tags with specified depth
             const response = await this.client.get(`${basePath}.${depth}.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to list tags at ${basePath}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to list tags at ${basePath}`, 'SERVER_ERROR', true, undefined, { response });
             }
             let tags = this.parseTagListResponse(response.data, basePath);
             // Apply client-side filtering and sorting
@@ -106,10 +103,10 @@ class TagManagementService {
         }
         catch (error) {
             this.logger.error('Failed to list tags', error);
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException('Unexpected error while listing tags', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
+            throw new AEMException('Unexpected error while listing tags', 'UNKNOWN_ERROR', false, undefined, { originalError: error });
         }
     }
     /**
@@ -119,7 +116,7 @@ class TagManagementService {
         try {
             this.logger.debug('Getting tag details', { tagId });
             if (!tagId) {
-                throw new errors_js_1.AEMException('Tag ID is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Tag ID is required', 'VALIDATION_ERROR', false);
             }
             const tagPath = `/content/cq:tags/${tagId}`;
             const requestOptions = {
@@ -133,7 +130,7 @@ class TagManagementService {
             // Get tag details with translations
             const response = await this.client.get(`${tagPath}.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Tag not found: ${tagId}`, 'NOT_FOUND_ERROR', false, undefined, { tagId });
+                throw new AEMException(`Tag not found: ${tagId}`, 'NOT_FOUND_ERROR', false, undefined, { tagId });
             }
             const tagDetails = this.parseTagDetailsResponse(response.data, tagId, tagPath);
             this.logger.debug('Successfully retrieved tag details', {
@@ -153,10 +150,10 @@ class TagManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get tag details', error, { tagId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting tag details for ${tagId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, tagId });
+            throw new AEMException(`Unexpected error while getting tag details for ${tagId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, tagId });
         }
     }
     /**
@@ -166,7 +163,7 @@ class TagManagementService {
         try {
             this.logger.debug('Getting tagged content', { tagId, options });
             if (!tagId) {
-                throw new errors_js_1.AEMException('Tag ID is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Tag ID is required', 'VALIDATION_ERROR', false);
             }
             const params = {
                 'tagid': tagId,
@@ -211,7 +208,7 @@ class TagManagementService {
             };
             const response = await this.client.get('/bin/querybuilder.json', params, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Failed to get tagged content for ${tagId}`, 'SERVER_ERROR', true, undefined, { response });
+                throw new AEMException(`Failed to get tagged content for ${tagId}`, 'SERVER_ERROR', true, undefined, { response });
             }
             const taggedContentResponse = this.parseTaggedContentResponse(response.data, tagId);
             this.logger.debug('Successfully retrieved tagged content', {
@@ -231,10 +228,10 @@ class TagManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get tagged content', error, { tagId });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting tagged content for ${tagId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, tagId });
+            throw new AEMException(`Unexpected error while getting tagged content for ${tagId}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, tagId });
         }
     }
     /**
@@ -244,7 +241,7 @@ class TagManagementService {
         try {
             this.logger.debug('Getting tag hierarchy', { namespace });
             if (!namespace) {
-                throw new errors_js_1.AEMException('Namespace is required', 'VALIDATION_ERROR', false);
+                throw new AEMException('Namespace is required', 'VALIDATION_ERROR', false);
             }
             const namespacePath = `/content/cq:tags/${namespace}`;
             const requestOptions = {
@@ -258,7 +255,7 @@ class TagManagementService {
             // Get complete hierarchy with deep traversal
             const response = await this.client.get(`${namespacePath}.infinity.json`, undefined, requestOptions);
             if (!response.success || !response.data) {
-                throw new errors_js_1.AEMException(`Tag namespace not found: ${namespace}`, 'NOT_FOUND_ERROR', false, undefined, { namespace });
+                throw new AEMException(`Tag namespace not found: ${namespace}`, 'NOT_FOUND_ERROR', false, undefined, { namespace });
             }
             const hierarchy = this.parseTagHierarchyResponse(response.data, namespace);
             this.logger.debug('Successfully retrieved tag hierarchy', {
@@ -279,10 +276,10 @@ class TagManagementService {
         }
         catch (error) {
             this.logger.error('Failed to get tag hierarchy', error, { namespace });
-            if (error instanceof errors_js_1.AEMException) {
+            if (error instanceof AEMException) {
                 throw error;
             }
-            throw new errors_js_1.AEMException(`Unexpected error while getting tag hierarchy for ${namespace}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, namespace });
+            throw new AEMException(`Unexpected error while getting tag hierarchy for ${namespace}`, 'UNKNOWN_ERROR', false, undefined, { originalError: error, namespace });
         }
     }
     /**
@@ -546,5 +543,4 @@ class TagManagementService {
         });
     }
 }
-exports.TagManagementService = TagManagementService;
 //# sourceMappingURL=tag-management-service.js.map

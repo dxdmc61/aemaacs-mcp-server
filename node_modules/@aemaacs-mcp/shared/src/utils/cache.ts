@@ -22,6 +22,7 @@ export interface CacheStats {
   size: number;
   maxSize: number;
   hitRate: number;
+  memoryUsage?: number;
 }
 
 export interface CacheManager {
@@ -308,8 +309,7 @@ export class RedisCache implements CacheManager {
         commandTimeout: 5000,
         retryDelayOnClusterDown: 300,
         enableOfflineQueue: false,
-        maxLoadingTimeout: 1000,
-        ...this._config.redis?.options
+        maxLoadingTimeout: 1000
       };
 
       this.redis = new Redis(redisConfig);
@@ -436,22 +436,24 @@ export class RedisCache implements CacheManager {
       return {
         hits: 0, // Redis doesn't provide hit/miss stats by default
         misses: 0,
+        sets: 0,
+        deletes: 0,
         hitRate: 0,
         size: dbSize,
-        memoryUsage: usedMemory,
-        maxMemory: this._config.maxMemory || 0,
-        adapter: 'redis'
+        maxSize: this._config.maxSize,
+        memoryUsage: usedMemory
       };
     } catch (error) {
       this.logger.error('Redis stats error', error as Error);
       return {
         hits: 0,
         misses: 0,
+        sets: 0,
+        deletes: 0,
         hitRate: 0,
         size: 0,
-        memoryUsage: 0,
-        maxMemory: 0,
-        adapter: 'redis'
+        maxSize: this._config.maxSize,
+        memoryUsage: 0
       };
     }
   }

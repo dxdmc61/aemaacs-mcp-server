@@ -19,15 +19,18 @@ export interface ResponseMetadata {
     requestId: string;
     duration: number;
     cached?: boolean;
+    statusCode?: number;
+    responseTime?: number;
 }
 export interface AEMCredentials {
-    type: 'basic' | 'oauth' | 'service-account';
+    type: 'basic' | 'oauth' | 'service-account' | 'token';
     username?: string;
     password?: string;
     clientId?: string;
     clientSecret?: string;
     privateKey?: string;
     accessToken?: string;
+    cookies?: string;
 }
 export interface AEMConfig {
     host: string;

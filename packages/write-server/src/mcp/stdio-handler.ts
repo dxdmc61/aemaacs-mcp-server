@@ -3,9 +3,9 @@
  * Handles MCP protocol over STDIO for write server with enhanced security
  */
 
-import { Logger } from '../../../shared/src/utils/logger.js';
+import { Logger } from '@aemaacs-mcp/shared';
 import { MCPHandler, MCPRequest, MCPResponse } from './mcp-handler.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 
 export interface MCPMessage {
   jsonrpc: '2.0';
@@ -48,24 +48,12 @@ export class STDIOHandler {
     process.stdin.on('end', this.handleEnd.bind(this));
     process.stdin.on('error', this.handleError.bind(this));
 
-    // Send initialization message
-    this.sendMessage({
-      jsonrpc: '2.0',
-      method: 'initialized',
-      params: {
-        protocolVersion: '2024-11-05',
-        capabilities: {
-          tools: {
-            listChanged: true
-          }
-        },
-        serverInfo: {
-          name: 'aem-write-server',
-          version: '1.0.0',
-          description: 'AEM as a Cloud Service Write Operations MCP Server'
-        }
-      }
-    });
+    // NOTE: Do NOT send 'initialized' notification here!
+    // According to MCP protocol:
+    // 1. Client sends 'initialize' request
+    // 2. Server responds with capabilities
+    // 3. Client sends 'initialized' notification
+    // The server waits for client's initialize request
   }
 
   /**
@@ -121,15 +109,16 @@ export class STDIOHandler {
     } catch (error) {
       this.logger.error('Error processing MCP message', error as Error, { messageStr });
       
-      // Send error response if we can parse the ID
+      // Send error response only if we can parse the ID
       try {
         const partialMessage = JSON.parse(messageStr);
-        if (partialMessage.id !== undefined) {
+        if (partialMessage.id !== undefined && partialMessage.id !== null) {
           this.sendErrorResponse(partialMessage.id, -32700, 'Parse error');
         }
+        // If no valid id, just log the error - don't send response with null id
       } catch {
-        // Can't even parse for ID, send generic error
-        this.sendErrorResponse(null, -32700, 'Parse error');
+        // Can't even parse for ID, just log the error
+        this.logger.error('Cannot parse message for ID, skipping error response');
       }
     }
   }
@@ -144,6 +133,12 @@ export class STDIOHandler {
       switch (method) {
         case 'initialize':
           await this.handleInitialize(params, id);
+          break;
+
+        case 'initialized':
+        case 'notifications/initialized':
+          // Client notification after initialize - no response needed
+          this.logger.debug('Received initialized notification from client');
           break;
 
         case 'tools/list':
@@ -186,7 +181,12 @@ export class STDIOHandler {
           break;
 
         default:
-          this.sendErrorResponse(id, -32601, `Method not found: ${method}`);
+          // Only send error for requests (with id), not for notifications
+          if (id !== undefined) {
+            this.sendErrorResponse(id, -32601, `Method not found: ${method}`);
+          } else {
+            this.logger.debug(`Ignoring unknown notification: ${method}`);
+          }
           break;
       }
     } catch (error) {
@@ -204,11 +204,9 @@ export class STDIOHandler {
     this.logger.info('Handling MCP initialize request', { params });
 
     const response = {
-      protocolVersion: '2024-11-05',
+      protocolVersion: '2025-11-25',
       capabilities: {
-        tools: {
-          listChanged: true
-        },
+        tools: {},
         security: {
           authenticationRequired: true,
           dangerousOperationConfirmation: true
@@ -314,9 +312,14 @@ export class STDIOHandler {
    * Send response message
    */
   private sendResponse(id: string | number | undefined, result: any): void {
+    if (id === undefined) {
+      this.logger.error('Cannot send response without id');
+      return;
+    }
+    
     const message: MCPMessage = {
       jsonrpc: '2.0',
-      id: id || null,
+      id,
       result
     };
 
@@ -325,14 +328,22 @@ export class STDIOHandler {
 
   /**
    * Send error response
+   * Note: Only send error responses when we have a valid id
+   * Per MCP spec, id:null is only for parse errors, but Cursor rejects it
    */
-  private sendErrorResponse(id: string | number | undefined | null, code: number, message: string, data?: any): void {
+  private sendErrorResponse(id: string | number | undefined | null, code: number, errorMessage: string, data?: any): void {
+    // Don't send error responses with null/undefined id - Cursor rejects them
+    if (id === null || id === undefined) {
+      this.logger.warn(`Cannot send error response without valid id: ${errorMessage} (code: ${code})`);
+      return;
+    }
+    
     const response: MCPMessage = {
       jsonrpc: '2.0',
-      id: id || null,
+      id,
       error: {
         code,
-        message,
+        message: errorMessage,
         data
       }
     };

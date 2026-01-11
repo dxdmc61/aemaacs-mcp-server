@@ -1,10 +1,7 @@
-"use strict";
 /**
  * Core AEMaaCS types and interfaces
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ErrorType = void 0;
-var ErrorType;
+export var ErrorType;
 (function (ErrorType) {
     ErrorType["AUTHENTICATION_ERROR"] = "AUTHENTICATION_ERROR";
     ErrorType["AUTHORIZATION_ERROR"] = "AUTHORIZATION_ERROR";
@@ -14,5 +11,5 @@ var ErrorType;
     ErrorType["TIMEOUT_ERROR"] = "TIMEOUT_ERROR";
     ErrorType["SERVER_ERROR"] = "SERVER_ERROR";
     ErrorType["UNKNOWN_ERROR"] = "UNKNOWN_ERROR";
-})(ErrorType || (exports.ErrorType = ErrorType = {}));
+})(ErrorType || (ErrorType = {}));
 //# sourceMappingURL=aem.js.map

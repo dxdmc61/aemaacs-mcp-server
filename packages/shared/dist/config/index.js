@@ -1,96 +1,93 @@
-"use strict";
 /**
  * Configuration management system for AEMaaCS MCP servers
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConfigManager = void 0;
-const dotenv_1 = require("dotenv");
-const joi_1 = __importDefault(require("joi"));
-const validation_js_1 = require("../utils/validation.js");
+import { config as dotenvConfig } from 'dotenv';
+import Joi from 'joi';
+import { ValidationUtils } from '../utils/validation.js';
 // Load environment variables
-(0, dotenv_1.config)();
-const configSchema = joi_1.default.object({
-    aem: joi_1.default.object({
-        host: joi_1.default.string().hostname().required(),
-        port: joi_1.default.number().port().default(443),
-        protocol: joi_1.default.string().valid('http', 'https').default('https'),
-        basePath: joi_1.default.string().optional(),
-        timeout: joi_1.default.number().positive().default(30000),
-        retryAttempts: joi_1.default.number().integer().min(0).max(10).default(3),
-        authentication: joi_1.default.object({
-            type: joi_1.default.string().valid('basic', 'oauth', 'service-account').required(),
-            username: joi_1.default.string().when('type', { is: 'basic', then: joi_1.default.required() }),
-            password: joi_1.default.string().when('type', { is: 'basic', then: joi_1.default.required() }),
-            clientId: joi_1.default.string().when('type', { is: joi_1.default.valid('oauth', 'service-account'), then: joi_1.default.required() }),
-            clientSecret: joi_1.default.string().when('type', { is: joi_1.default.valid('oauth', 'service-account'), then: joi_1.default.required() }),
-            privateKey: joi_1.default.string().when('type', { is: 'service-account', then: joi_1.default.optional() }),
-            accessToken: joi_1.default.string().optional()
+dotenvConfig();
+const configSchema = Joi.object({
+    aem: Joi.object({
+        host: Joi.string().hostname().required(),
+        port: Joi.number().port().default(443),
+        protocol: Joi.string().valid('http', 'https').default('https'),
+        basePath: Joi.string().optional(),
+        timeout: Joi.number().positive().default(30000),
+        retryAttempts: Joi.number().integer().min(0).max(10).default(3),
+        authentication: Joi.object({
+            type: Joi.string().valid('basic', 'oauth', 'service-account', 'token').required(),
+            username: Joi.string().when('type', { is: 'basic', then: Joi.required(), otherwise: Joi.optional() }),
+            password: Joi.string().when('type', { is: 'basic', then: Joi.required(), otherwise: Joi.optional() }),
+            // OAuth and service-account require clientId/clientSecret ONLY if accessToken is not provided
+            clientId: Joi.string().optional(),
+            clientSecret: Joi.string().optional(),
+            privateKey: Joi.string().optional(),
+            accessToken: Joi.string().optional()
         }).required()
     }).required(),
-    server: joi_1.default.object({
-        port: joi_1.default.number().port().default(8080),
-        host: joi_1.default.string().default('0.0.0.0'),
-        cors: joi_1.default.object({
-            enabled: joi_1.default.boolean().default(true),
-            origins: joi_1.default.array().items(joi_1.default.string()).default(['*'])
+    server: Joi.object({
+        port: Joi.number().port().default(8080),
+        host: Joi.string().default('0.0.0.0'),
+        cors: Joi.object({
+            enabled: Joi.boolean().default(true),
+            origins: Joi.array().items(Joi.string()).default(['*'])
         }).default(),
-        rateLimit: joi_1.default.object({
-            windowMs: joi_1.default.number().positive().default(900000), // 15 minutes
-            maxRequests: joi_1.default.number().positive().default(100)
+        rateLimit: Joi.object({
+            windowMs: Joi.number().positive().default(900000), // 15 minutes
+            maxRequests: Joi.number().positive().default(100)
         }).default(),
-        timeout: joi_1.default.number().positive().default(30000)
+        timeout: Joi.number().positive().default(30000)
     }).default(),
-    security: joi_1.default.object({
-        enableInputValidation: joi_1.default.boolean().default(true),
-        enableAuditLogging: joi_1.default.boolean().default(true),
-        maxRequestSize: joi_1.default.string().default('10mb'),
-        allowedFileTypes: joi_1.default.array().items(joi_1.default.string()).default([
+    security: Joi.object({
+        enableInputValidation: Joi.boolean().default(true),
+        enableAuditLogging: Joi.boolean().default(true),
+        maxRequestSize: Joi.string().default('10mb'),
+        allowedFileTypes: Joi.array().items(Joi.string()).default([
             '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp',
             '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
             '.txt', '.csv', '.json', '.xml', '.html', '.css', '.js',
             '.zip', '.tar', '.gz'
         ]),
-        maxFileSize: joi_1.default.number().positive().default(104857600) // 100MB
+        maxFileSize: Joi.number().positive().default(104857600) // 100MB
     }).default(),
-    logging: joi_1.default.object({
-        level: joi_1.default.string().valid('error', 'warn', 'info', 'debug').default('info'),
-        format: joi_1.default.string().valid('json', 'simple').default('json'),
-        file: joi_1.default.object({
-            enabled: joi_1.default.boolean().default(false),
-            path: joi_1.default.string().default('./logs/app.log'),
-            maxSize: joi_1.default.string().default('10m'),
-            maxFiles: joi_1.default.number().positive().default(5)
+    logging: Joi.object({
+        level: Joi.string().valid('error', 'warn', 'info', 'debug').default('info'),
+        format: Joi.string().valid('json', 'simple').default('json'),
+        file: Joi.object({
+            enabled: Joi.boolean().default(false),
+            path: Joi.string().default('./logs/app.log'),
+            maxSize: Joi.string().default('10m'),
+            maxFiles: Joi.number().positive().default(5)
         }).optional(),
-        console: joi_1.default.object({
-            enabled: joi_1.default.boolean().default(true),
-            colorize: joi_1.default.boolean().default(true)
+        console: Joi.object({
+            enabled: Joi.boolean().default(true),
+            colorize: Joi.boolean().default(true)
         }).default()
     }).default(),
-    cache: joi_1.default.object({
-        enabled: joi_1.default.boolean().default(true),
-        ttl: joi_1.default.number().positive().default(300000), // 5 minutes
-        maxSize: joi_1.default.number().positive().default(1000),
-        strategy: joi_1.default.string().valid('lru', 'lfu', 'ttl').default('lru'),
-        redis: joi_1.default.object({
-            host: joi_1.default.string().hostname().default('localhost'),
-            port: joi_1.default.number().port().default(6379),
-            password: joi_1.default.string().optional(),
-            db: joi_1.default.number().integer().min(0).default(0)
+    cache: Joi.object({
+        enabled: Joi.boolean().default(true),
+        ttl: Joi.number().positive().default(300000), // 5 minutes
+        maxSize: Joi.number().positive().default(1000),
+        strategy: Joi.string().valid('lru', 'lfu', 'ttl').default('lru'),
+        redis: Joi.object({
+            host: Joi.string().hostname().default('localhost'),
+            port: Joi.number().port().default(6379),
+            password: Joi.string().optional(),
+            db: Joi.number().integer().min(0).default(0)
         }).optional()
     }).default(),
-    retry: joi_1.default.object({
-        maxAttempts: joi_1.default.number().integer().min(1).max(10).default(3),
-        baseDelay: joi_1.default.number().positive().default(1000),
-        maxDelay: joi_1.default.number().positive().default(30000),
-        backoffMultiplier: joi_1.default.number().positive().default(2)
+    retry: Joi.object({
+        maxAttempts: Joi.number().integer().min(1).max(10).default(3),
+        baseDelay: Joi.number().positive().default(1000),
+        maxDelay: Joi.number().positive().default(30000),
+        backoffMultiplier: Joi.number().positive().default(2)
     }).default()
 });
-class ConfigManager {
+export class ConfigManager {
     constructor() {
+        this.configListeners = new Set();
         this.config = this.loadConfig();
+        this.startConfigWatcher();
     }
     static getInstance() {
         if (!ConfigManager.instance) {
@@ -188,7 +185,7 @@ class ConfigManager {
                 backoffMultiplier: parseFloat(process.env.RETRY_BACKOFF_MULTIPLIER || '2')
             }
         };
-        return validation_js_1.ValidationUtils.validateWithSchema(rawConfig, configSchema);
+        return ValidationUtils.validateWithSchema(rawConfig, configSchema);
     }
     loadAuthConfig() {
         const authType = process.env.AEM_AUTH_TYPE || 'basic';
@@ -198,6 +195,13 @@ class ConfigManager {
                     type: 'basic',
                     username: process.env.AEM_USERNAME || '',
                     password: process.env.AEM_PASSWORD || ''
+                };
+            case 'token':
+                // Direct token authentication (for development or browser session tokens)
+                return {
+                    type: 'token', // Use dedicated token type - no OAuth refresh needed
+                    accessToken: process.env.AEM_ACCESS_TOKEN || '',
+                    cookies: process.env.AEM_COOKIES // Full cookie string from browser session
                 };
             case 'oauth':
                 return {
@@ -221,14 +225,23 @@ class ConfigManager {
      * Reload configuration (useful for hot-reloading in development)
      */
     reloadConfig() {
-        this.config = this.loadConfig();
+        const oldConfig = this.config;
+        try {
+            this.config = this.loadConfig();
+            this.notifyConfigListeners();
+            console.log('Configuration reloaded successfully');
+        }
+        catch (error) {
+            console.error('Failed to reload configuration, keeping old config:', error);
+            this.config = oldConfig;
+        }
     }
     /**
      * Validate configuration
      */
     validateConfig() {
         try {
-            validation_js_1.ValidationUtils.validateWithSchema(this.config, configSchema);
+            ValidationUtils.validateWithSchema(this.config, configSchema);
             return { valid: true };
         }
         catch (error) {
@@ -238,6 +251,113 @@ class ConfigManager {
             };
         }
     }
+    /**
+     * Add configuration change listener
+     */
+    addConfigListener(listener) {
+        this.configListeners.add(listener);
+    }
+    /**
+     * Remove configuration change listener
+     */
+    removeConfigListener(listener) {
+        this.configListeners.delete(listener);
+    }
+    /**
+     * Start configuration file watcher for hot-reload
+     */
+    startConfigWatcher() {
+        // Only enable hot-reload in development mode
+        if (process.env.NODE_ENV !== 'development') {
+            return;
+        }
+        this.configFile = process.env.CONFIG_FILE || '.env';
+        // Check for config file changes every 5 seconds
+        this.configWatcher = setInterval(() => {
+            this.checkConfigFileChanges();
+        }, 5000);
+    }
+    /**
+     * Check for configuration file changes
+     */
+    async checkConfigFileChanges() {
+        if (!this.configFile) {
+            return;
+        }
+        try {
+            const fs = await import('fs/promises');
+            const stats = await fs.stat(this.configFile);
+            if (this.lastModified && stats.mtime.getTime() > this.lastModified) {
+                this.lastModified = stats.mtime.getTime();
+                this.reloadConfig();
+            }
+            else if (!this.lastModified) {
+                this.lastModified = stats.mtime.getTime();
+            }
+        }
+        catch (error) {
+            // Config file might not exist, ignore error
+        }
+    }
+    /**
+     * Notify all configuration listeners
+     */
+    notifyConfigListeners() {
+        for (const listener of this.configListeners) {
+            try {
+                listener();
+            }
+            catch (error) {
+                console.error('Error in configuration listener:', error);
+            }
+        }
+    }
+    /**
+     * Stop configuration watcher
+     */
+    stopConfigWatcher() {
+        if (this.configWatcher) {
+            clearInterval(this.configWatcher);
+            this.configWatcher = undefined;
+        }
+    }
+    /**
+     * Get configuration summary for debugging
+     */
+    getConfigSummary() {
+        return {
+            aem: {
+                host: this.config.aem.host,
+                port: this.config.aem.port,
+                protocol: this.config.aem.protocol,
+                authType: this.config.aem.authentication.type
+            },
+            server: {
+                port: this.config.server.port,
+                host: this.config.server.host,
+                corsEnabled: this.config.server.cors.enabled
+            },
+            security: {
+                inputValidation: this.config.security.enableInputValidation,
+                auditLogging: this.config.security.enableAuditLogging
+            },
+            cache: {
+                enabled: this.config.cache.enabled,
+                strategy: this.config.cache.strategy,
+                redisEnabled: !!this.config.cache.redis
+            },
+            logging: {
+                level: this.config.logging.level,
+                format: this.config.logging.format
+            }
+        };
+    }
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        this.stopConfigWatcher();
+        this.configListeners.clear();
+    }
 }
-exports.ConfigManager = ConfigManager;
 //# sourceMappingURL=index.js.map

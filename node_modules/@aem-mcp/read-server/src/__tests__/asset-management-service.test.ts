@@ -3,9 +3,9 @@
  */
 
 import { AssetManagementService, AssetMetadataExtended, ListAssetsOptions, AssetReferences, AssetVersionHistory } from '../services/asset-management-service.js';
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
-import { AEMResponse, Asset, Rendition } from '../../../shared/src/types/aem.js';
-import { AEMException } from '../../../shared/src/utils/errors.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
+import { AEMResponse, Asset, Rendition } from '@aemaacs-mcp/shared';
+import { AEMException } from '@aemaacs-mcp/shared';
 
 // Mock the AEM HTTP Client
 jest.mock('../../../shared/src/client/aem-http-client.js');

@@ -28,7 +28,7 @@ export interface RetryResult<T> {
   fallbackUsed: boolean;
 }
 
-export interface RetryOptions {
+export interface RetryOptions<T = any> {
   config?: Partial<RetryConfig>;
   fallback?: () => Promise<T>;
   onRetry?: (attempt: number, error: Error) => void;

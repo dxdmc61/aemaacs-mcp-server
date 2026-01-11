@@ -2,7 +2,7 @@
  * MCP Protocol Handler for Read Server
  * Handles MCP tool discovery, schema generation, and tool execution
  */
-import { AEMHttpClient } from '../../../shared/src/client/aem-http-client.js';
+import { AEMHttpClient } from '@aemaacs-mcp/shared';
 export interface MCPTool {
     name: string;
     description: string;
