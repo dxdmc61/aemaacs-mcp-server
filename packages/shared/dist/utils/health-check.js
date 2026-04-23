@@ -23,16 +23,7 @@ export class HealthCheckService {
         this.requestCount++;
         try {
             // Run all health checks in parallel
-            const [
-                serverHealth,
-                aemHealth,
-                cacheHealth,
-                securityHealth,
-                metricsHealth,
-                aemDependency,
-                cacheDependency,
-                metricsDependency
-            ] = await Promise.allSettled([
+            const [serverHealth, aemHealth, cacheHealth, securityHealth, metricsHealth, aemDependency, cacheDependency, metricsDependency] = await Promise.allSettled([
                 this.checkServerHealth(),
                 this.checkAEMHealth(),
                 this.checkCacheHealth(),

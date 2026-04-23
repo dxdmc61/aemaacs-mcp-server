@@ -3,7 +3,6 @@
  */
 import { Logger } from './logger.js';
 import { AEMException } from './errors.js';
-import { ErrorType } from '../types/aem.js';
 export class RetryHandler {
     constructor(defaultConfig) {
         this.logger = Logger.getInstance();

@@ -1,7 +1,7 @@
 /**
  * Service wrapper with circuit breaker integration and fallback mechanisms
  */
-import { CircuitBreaker, CircuitBreakerRegistry } from './circuit-breaker.js';
+import { CircuitBreakerRegistry } from './circuit-breaker.js';
 import { Logger } from './logger.js';
 import { AEMException } from './errors.js';
 import { ErrorType } from '../types/aem.js';
