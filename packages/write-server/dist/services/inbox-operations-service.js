@@ -256,7 +256,7 @@ export class InboxOperationsService {
             cutoffDate.setDate(cutoffDate.getDate() - maxAge);
             const params = {
                 'type': itemType,
-                'status': status,
+                status,
                 'createdBefore': cutoffDate.toISOString(),
                 'p.limit': limit.toString()
             };

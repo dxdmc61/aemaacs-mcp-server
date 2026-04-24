@@ -62,6 +62,7 @@ export class ValidationUtils {
             /\/\//, // Double slashes
             /\/$/, // Trailing slash (not allowed for content)
             /[<>:"|?*]/, // Invalid filename characters
+            // eslint-disable-next-line no-control-regex
             /[\x00-\x1f]/, // Control characters
             /[^\x20-\x7e]/ // Non-printable characters
         ];

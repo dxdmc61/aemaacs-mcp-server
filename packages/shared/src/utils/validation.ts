@@ -73,15 +73,16 @@ export class ValidationUtils {
       }
     }
 
-    // Check for dangerous patterns
-    const dangerousPatterns = [
-      /\.\./,           // Path traversal
-      /\/\//,           // Double slashes
-      /\/$/,            // Trailing slash (not allowed for content)
-      /[<>:"|?*]/,      // Invalid filename characters
-      /[\x00-\x1f]/,    // Control characters
-      /[^\x20-\x7e]/    // Non-printable characters
-    ];
+  // Check for dangerous patterns
+  const dangerousPatterns = [
+    /\.\./,           // Path traversal
+    /\/\//,           // Double slashes
+    /\/$/,            // Trailing slash (not allowed for content)
+    /[<>:"|?*]/,      // Invalid filename characters
+    // eslint-disable-next-line no-control-regex
+    /[\x00-\x1f]/,    // Control characters
+    /[^\x20-\x7e]/    // Non-printable characters
+  ];
 
     for (const pattern of dangerousPatterns) {
       if (pattern.test(normalized)) {

@@ -329,7 +329,6 @@ export class AEMHttpClient {
         timeout: 60000,
         rejectUnauthorized: true
       });
-
       config.httpAgent = httpAgent;
       config.httpsAgent = httpsAgent;
     }
@@ -354,10 +353,10 @@ export class AEMHttpClient {
         
         const authHeaders = {
           cookie: (typeof cookieHeader === 'string' && cookieHeader) ? 
-            cookieHeader.substring(0, 100) + '...' : 
+            `${cookieHeader.substring(0, 100)  }...` : 
             'NOT SET',
           authorization: (typeof authHeader === 'string' && authHeader) ? 
-            authHeader.substring(0, 50) + '...' : 
+            `${authHeader.substring(0, 50)  }...` : 
             'NOT SET',
           userAgent: (typeof userAgentHeader === 'string' && userAgentHeader) ? 
             userAgentHeader : 
@@ -417,10 +416,10 @@ export class AEMHttpClient {
         
         const requestHeaders = {
           cookie: (typeof cookieHeader === 'string' && cookieHeader) ? 
-            cookieHeader.substring(0, 100) + '...' : 
+            `${cookieHeader.substring(0, 100)  }...` : 
             'NOT SET',
           authorization: (typeof authHeader === 'string' && authHeader) ? 
-            authHeader.substring(0, 50) + '...' : 
+            `${authHeader.substring(0, 50)  }...` : 
             'NOT SET',
           userAgent: (typeof userAgentHeader === 'string' && userAgentHeader) ? 
             userAgentHeader : 
@@ -641,7 +640,7 @@ export class AEMHttpClient {
     const payload = {
       iss: auth.clientId,
       sub: auth.clientId, // For service accounts, subject is same as issuer
-      aud: 'https://ims-na1.adobelogin.com/c/' + auth.clientId,
+      aud: `https://ims-na1.adobelogin.com/c/${  auth.clientId}`,
       exp: now + 3600, // Token expires in 1 hour
       iat: now,
       scope: 'openid,AdobeID,read_organizations,additional_info.projectedProductContext'
@@ -675,7 +674,7 @@ export class AEMHttpClient {
     const headers: Record<string, string> = {};
 
     switch (auth.type) {
-      case 'token':
+      case 'token': {
         // Direct token authentication - for AEMaaCS browser session tokens
         // Check if a full cookie string is provided via AEM_COOKIES env var
         const fullCookies = process.env.AEM_COOKIES || (auth as any).cookies;
@@ -688,11 +687,10 @@ export class AEMHttpClient {
           // Log cookie presence for debugging (truncated)
           this.logger.debug('Using cookies for authentication', {
             cookieLength: fullCookies.length,
-            cookiePreview: fullCookies.substring(0, 50) + '...'
+            cookiePreview: `${fullCookies.substring(0, 50)}...`
           });
         } else if (auth.accessToken) {
           // Fallback: use just the login-token cookie
-          // Note: This may not work for all AEMaaCS instances that require full IMS auth
           headers['Cookie'] = `login-token=login:${auth.accessToken}`;
           headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
           this.logger.debug('Using accessToken for login-token cookie');
@@ -700,14 +698,18 @@ export class AEMHttpClient {
           this.logger.warn('No cookies or accessToken found for token authentication');
         }
         break;
-      case 'basic':
+      }
+
+      case 'basic': {
         if (auth.username && auth.password) {
           const credentials = Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
           headers['Authorization'] = `Basic ${credentials}`;
         }
         break;
+      }
+
       case 'oauth':
-      case 'service-account':
+      case 'service-account': {
         // Use refreshed OAuth/service-account token as Bearer
         if (this.authToken) {
           headers['Authorization'] = `Bearer ${this.authToken}`;
@@ -716,6 +718,7 @@ export class AEMHttpClient {
           headers['Authorization'] = `Bearer ${auth.accessToken}`;
         }
         break;
+      }
     }
 
     return headers;

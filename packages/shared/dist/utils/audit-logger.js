@@ -239,7 +239,7 @@ export class AuditLogger {
     async writeEventToFile(event) {
         try {
             const logFile = path.join(this.config.logDirectory, `audit-${this.getDateString()}.log`);
-            const logEntry = JSON.stringify(event) + '\n';
+            const logEntry = `${JSON.stringify(event)}\n`;
             await fs.appendFile(logFile, logEntry);
         }
         catch (error) {

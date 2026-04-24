@@ -92,7 +92,7 @@ export class SecurityMiddleware {
             ip: req.ip,
             path: req.path,
             userAgent: req.get('User-Agent'),
-            providedKey: apiKey.substring(0, 8) + '...' // Log partial key for debugging
+            providedKey: `${apiKey.substring(0, 8)  }...` // Log partial key for debugging
           });
 
           res.status(401).json({
@@ -372,7 +372,7 @@ export class SecurityMiddleware {
       const startTime = Date.now();
 
       // Log request start
-      this.logger.logOperationStart(req.method + ' ' + req.path, context);
+      this.logger.logOperationStart(`${req.method  } ${  req.path}`, context);
 
       // Override res.end to capture response
       const originalEnd = res.end.bind(res);
@@ -382,7 +382,7 @@ export class SecurityMiddleware {
 
         // Log operation completion
         Logger.getInstance().logOperationComplete(
-          req.method + ' ' + req.path,
+          `${req.method  } ${  req.path}`,
           context,
           duration,
           success

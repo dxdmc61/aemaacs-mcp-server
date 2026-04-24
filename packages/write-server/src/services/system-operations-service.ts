@@ -92,7 +92,7 @@ export class SystemOperationsService {
       }
 
       let appliedEntries = 0;
-      let skippedEntries = 0;
+      const skippedEntries = 0;
       let failedEntries = 0;
       const errors: string[] = [];
       const warnings: string[] = [];

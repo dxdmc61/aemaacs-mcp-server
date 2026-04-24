@@ -1016,7 +1016,7 @@ export class MCPHandler {
                     });
                     break;
                 // Content Operations
-                case 'aem_create_folder':
+                case 'aem_create_folder': {
                     if (args.ordered) {
                         result = await this.services.contentOperations.createOrderedFolder(args.parentPath, args.folderName, { title: args.title });
                     }
@@ -1024,15 +1024,18 @@ export class MCPHandler {
                         result = await this.services.contentOperations.createFolder(args.parentPath, args.folderName, { title: args.title });
                     }
                     break;
-                case 'aem_upload_file':
+                }
+                case 'aem_upload_file': {
                     const fileBuffer = Buffer.from(args.fileContent, 'base64');
                     result = await this.services.contentOperations.uploadFile(args.parentPath, args.fileName, fileBuffer, { mimeType: args.mimeType });
                     break;
+                }
                 // Asset Management
-                case 'aem_upload_asset':
+                case 'aem_upload_asset': {
                     const assetBuffer = Buffer.from(args.fileContent, 'base64');
                     result = await this.services.assetManagement.uploadAsset(args.parentPath, args.fileName, assetBuffer, { metadata: args.metadata });
                     break;
+                }
                 case 'aem_update_asset':
                     result = await this.services.assetManagement.updateAsset(args.assetPath, {
                         metadata: args.metadata

@@ -59,7 +59,7 @@ export class AuditLogger {
   private config: AuditLoggerConfig;
   private logQueue: AuditEvent[] = [];
   private processingQueue: boolean = false;
-  private logRotationTimer?: NodeJS.Timeout;
+  private logRotationTimer?:ReturnType<typeof setTimeout>;
 
   constructor(config?: Partial<AuditLoggerConfig>) {
     this.logger = Logger.getInstance();
@@ -366,7 +366,7 @@ export class AuditLogger {
   private async writeEventToFile(event: AuditEvent): Promise<void> {
     try {
       const logFile = path.join(this.config.logDirectory, `audit-${this.getDateString()}.log`);
-      const logEntry = JSON.stringify(event) + '\n';
+      const logEntry = `${JSON.stringify(event)  }\n`;
       
       await fs.appendFile(logFile, logEntry);
     } catch (error) {

@@ -249,7 +249,8 @@ export class ComponentAnalysisService {
             if (props.title) {
                 text = props.title;
                 if (props.description) {
-                    text += ' ' + props.description;
+                    // Change this line:
+                    text = `${text} ${props.description}`;
                 }
             }
         }

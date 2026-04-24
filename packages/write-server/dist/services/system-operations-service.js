@@ -23,7 +23,7 @@ export class SystemOperationsService {
                 throw new AEMException('Invalid JCR path format', 'VALIDATION_ERROR', false);
             }
             let appliedEntries = 0;
-            let skippedEntries = 0;
+            const skippedEntries = 0;
             let failedEntries = 0;
             const errors = [];
             const warnings = [];

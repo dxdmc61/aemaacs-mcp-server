@@ -663,7 +663,7 @@ export class TagManagementService {
           path: `/content/cq:tags/${fullTagId}`,
           title: tag['jcr:title'] || key,
           description: tag['jcr:description'],
-          namespace: namespace,
+          namespace,
           parentPath: parentPath ? `/content/cq:tags/${namespace}/${parentPath}` : `/content/cq:tags/${namespace}`,
           level,
           hasChildren: children.length > 0,

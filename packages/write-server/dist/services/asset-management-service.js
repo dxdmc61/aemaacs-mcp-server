@@ -383,7 +383,7 @@ export class AssetManagementService {
         return {
             success: Boolean(data.success !== false),
             path: data.path || path,
-            fileName: fileName,
+            fileName,
             mimeType: data.mimeType || this.guessMimeType(fileName),
             size: data.size ? parseInt(data.size) : undefined,
             renditions: Array.isArray(data.renditions) ? data.renditions : undefined,
@@ -415,7 +415,7 @@ export class AssetManagementService {
         return {
             success: Boolean(data.success !== false),
             path: data.path || path,
-            folderName: folderName,
+            folderName,
             folderType: 'dam:AssetContent',
             message: data.message || data.msg,
             warnings: Array.isArray(data.warnings) ? data.warnings : (data.warning ? [data.warning] : []),
@@ -522,7 +522,7 @@ export class AssetManagementService {
             const pathParts = folderPath.replace('/content/dam/', '').split('/').filter(part => part);
             let currentPath = '/content/dam';
             for (let i = 0; i < pathParts.length; i++) {
-                currentPath += '/' + pathParts[i];
+                currentPath += `/${pathParts[i]}`;
                 try {
                     // Check if this part exists
                     const checkResponse = await this.client.get(`${currentPath}.json`);

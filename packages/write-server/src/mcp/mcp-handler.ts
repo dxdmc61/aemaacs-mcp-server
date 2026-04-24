@@ -1099,7 +1099,7 @@ export class MCPHandler {
           break;
 
         // Content Operations
-        case 'aem_create_folder':
+        case 'aem_create_folder':{
           if (args.ordered) {
             result = await this.services.contentOperations.createOrderedFolder(
               args.parentPath,
@@ -1114,7 +1114,8 @@ export class MCPHandler {
             );
           }
           break;
-        case 'aem_upload_file':
+        }
+        case 'aem_upload_file':{
           const fileBuffer = Buffer.from(args.fileContent, 'base64');
           result = await this.services.contentOperations.uploadFile(
             args.parentPath,
@@ -1123,9 +1124,9 @@ export class MCPHandler {
             { mimeType: args.mimeType }
           );
           break;
-
+        }
         // Asset Management
-        case 'aem_upload_asset':
+        case 'aem_upload_asset':{
           const assetBuffer = Buffer.from(args.fileContent, 'base64');
           result = await this.services.assetManagement.uploadAsset(
             args.parentPath,
@@ -1134,6 +1135,7 @@ export class MCPHandler {
             { metadata: args.metadata }
           );
           break;
+        }
         case 'aem_update_asset':
           result = await this.services.assetManagement.updateAsset(args.assetPath, {
             metadata: args.metadata

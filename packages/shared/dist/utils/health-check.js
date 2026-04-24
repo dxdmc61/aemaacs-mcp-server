@@ -188,7 +188,7 @@ export class HealthCheckService {
         }
         try {
             // Test cache operations
-            const testKey = 'health_check_' + Date.now();
+            const testKey = `health_check_${Date.now()}`;
             const testValue = { test: true, timestamp: new Date().toISOString() };
             await this.cacheManager.set(testKey, testValue, 10);
             const retrieved = await this.cacheManager.get(testKey);
@@ -366,7 +366,7 @@ export class HealthCheckService {
         const startTime = Date.now();
         try {
             // Test cache connection
-            const testKey = 'dependency_check_' + Date.now();
+            const testKey = `dependency_check_${Date.now()}`;
             await this.cacheManager.set(testKey, 'test', 5);
             await this.cacheManager.delete(testKey);
             return {

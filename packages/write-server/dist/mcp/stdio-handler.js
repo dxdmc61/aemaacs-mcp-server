@@ -298,7 +298,7 @@ export class STDIOHandler {
     sendMessage(message) {
         try {
             const messageStr = JSON.stringify(message);
-            process.stdout.write(messageStr + '\n');
+            process.stdout.write(`${messageStr}\n`);
             this.logger.debug('Sent MCP message', {
                 method: message.method,
                 id: message.id,

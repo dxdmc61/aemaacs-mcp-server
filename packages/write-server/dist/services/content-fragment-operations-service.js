@@ -176,7 +176,7 @@ export class ContentFragmentOperationsService {
             };
             // Build URL with query params
             const queryString = new URLSearchParams(params).toString();
-            const url = `/api/assets${fragmentPath}${queryString ? '?' + queryString : ''}`;
+            const url = `/api/assets${fragmentPath}${queryString ? `?${queryString}` : ''}`;
             const response = await this.client.delete(url, requestOptions);
             if (!response.success || !response.data) {
                 throw new AEMException(`Failed to delete content fragment: ${fragmentPath}`, 'SERVER_ERROR', true, undefined, { response });
@@ -227,7 +227,7 @@ export class ContentFragmentOperationsService {
                 if (typeof value === 'string') {
                     formattedElements[key] = {
                         'jcr:primaryType': 'nt:unstructured',
-                        'value': value,
+                        value,
                         'dataType': 'string'
                     };
                 }
@@ -248,7 +248,7 @@ export class ContentFragmentOperationsService {
                 else if (Array.isArray(value)) {
                     formattedElements[key] = {
                         'jcr:primaryType': 'nt:unstructured',
-                        'value': value,
+                        value,
                         'dataType': 'array'
                     };
                 }

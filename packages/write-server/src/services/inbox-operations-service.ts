@@ -430,7 +430,7 @@ export class InboxOperationsService {
 
       const params = {
         'type': itemType,
-        'status': status,
+        status,
         'createdBefore': cutoffDate.toISOString(),
         'p.limit': limit.toString()
       };
