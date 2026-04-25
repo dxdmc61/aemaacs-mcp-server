@@ -180,10 +180,23 @@ export class HTTPHandler {
     }
 
     const apiKey = req.header('X-API-Key') || req.query.apiKey as string;
+
+    // Extract client IP, handling missing or malformed X-Forwarded-For gracefully
     const forwardedFor = req.header('X-Forwarded-For');
-    const clientIP = forwardedFor
-      ? forwardedFor.split(',')[0].trim()
-      : (req.ip || req.connection.remoteAddress);
+    let clientIP: string | undefined;
+    if (forwardedFor && forwardedFor.trim().length > 0) {
+      const firstEntry = forwardedFor.split(',')[0].trim();
+      clientIP = firstEntry.length > 0 ? firstEntry : undefined;
+    }
+    if (!clientIP) {
+      clientIP = req.ip || req.connection.remoteAddress || undefined;
+    }
+
+    this.logger.debug('Auth middleware: extracted client IP', {
+      clientIP,
+      forwardedFor: forwardedFor ?? null,
+      path: req.path
+    });
 
     // Check API key
     if (this.config.security.apiKeys && this.config.security.apiKeys.length > 0) {
@@ -200,27 +213,43 @@ export class HTTPHandler {
       }
     }
 
-    // Check allowed IPs
-    if (this.config.security.allowedIPs && this.config.security.allowedIPs.length > 0) {
-      const isAllowed = this.config.security.allowedIPs.some((allowedIP: string) => {
-        if (allowedIP.includes('/')) {
-          // CIDR notation - simplified check
-          return clientIP?.startsWith(allowedIP.split('/')[0]);
-        }
-        return clientIP === allowedIP;
-      });
+    // Check allowed IPs — skip entirely when no allowlist is configured
+    const allowedIPs = this.config.security.allowedIPs;
+    if (!allowedIPs || allowedIPs.length === 0) {
+      this.logger.debug('Auth middleware: no IP allowlist configured, skipping IP check');
+      return next();
+    }
 
-      if (!isAllowed) {
-        res.status(403).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32002,
-            message: 'IP address not allowed'
-          },
-          id: null
-        });
-        return;
+    this.logger.debug('Auth middleware: checking IP against allowlist', {
+      clientIP,
+      allowedIPs
+    });
+
+    const isAllowed = allowedIPs.some((allowedIP: string) => {
+      if (!clientIP) {
+        return false;
       }
+      if (allowedIP.includes('/')) {
+        // CIDR notation - simplified prefix check
+        return clientIP.startsWith(allowedIP.split('/')[0]);
+      }
+      return clientIP === allowedIP;
+    });
+
+    if (!isAllowed) {
+      this.logger.warn('Auth middleware: IP address not in allowlist', {
+        clientIP,
+        allowedIPs
+      });
+      res.status(403).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32002,
+          message: 'IP address not allowed'
+        },
+        id: null
+      });
+      return;
     }
 
     next();
