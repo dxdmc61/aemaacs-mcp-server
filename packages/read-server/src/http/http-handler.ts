@@ -37,6 +37,7 @@ export class HTTPHandler {
 
   constructor(client: AEMHttpClient, config: ReadServerConfig) {
     this.app = express();
+    this.app.set('trust proxy', 1);
     this.logger = Logger.getInstance();
     this.mcpHandler = new MCPHandler(client);
     this.config = config;
@@ -73,7 +74,8 @@ export class HTTPHandler {
           id: null
         },
         standardHeaders: true,
-        legacyHeaders: false
+        legacyHeaders: false,
+        skip: (req) => req.path === '/health'
       });
       this.app.use(limiter);
     }
@@ -178,7 +180,10 @@ export class HTTPHandler {
     }
 
     const apiKey = req.header('X-API-Key') || req.query.apiKey as string;
-    const clientIP = req.ip || req.connection.remoteAddress;
+    const forwardedFor = req.header('X-Forwarded-For');
+    const clientIP = forwardedFor
+      ? forwardedFor.split(',')[0].trim()
+      : (req.ip || req.connection.remoteAddress);
 
     // Check API key
     if (this.config.security.apiKeys && this.config.security.apiKeys.length > 0) {
