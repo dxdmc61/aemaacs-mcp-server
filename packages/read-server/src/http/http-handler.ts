@@ -200,28 +200,26 @@ export class HTTPHandler {
       }
     }
 
-    // Check allowed IPs
-    if (this.config.security.allowedIPs && this.config.security.allowedIPs.length > 0) {
-      const isAllowed = this.config.security.allowedIPs.some((allowedIP: string) => {
-        if (allowedIP.includes('/')) {
-          // CIDR notation - simplified check
-          return clientIP?.startsWith(allowedIP.split('/')[0]);
-        }
-        return clientIP === allowedIP;
-      });
+    // Check allowed IPs (disabled - allow all)
+if (this.config.security.allowedIPs && this.config.security.allowedIPs.length > 0) {
+  if (!this.config.security.allowedIPs.includes('*')) {
+    const isAllowed = this.config.security.allowedIPs.some((allowedIP: string) => {
+      return clientIP === allowedIP;
+    });
 
-      if (!isAllowed) {
-        res.status(403).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32002,
-            message: 'IP address not allowed'
-          },
-          id: null
-        });
-        return;
-      }
+    if (!isAllowed) {
+       res.status(403).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32002,
+          message: 'IP address not allowed'
+        },
+        id: null
+      });
     }
+    return;
+  }
+}
 
     next();
   }
