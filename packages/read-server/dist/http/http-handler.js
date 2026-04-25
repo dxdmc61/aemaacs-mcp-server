@@ -10,6 +10,7 @@ import { MCPHandler } from '../mcp/mcp-handler.js';
 export class HTTPHandler {
     constructor(client, config) {
         this.app = express();
+        this.app.set('trust proxy', 1);
         this.logger = Logger.getInstance();
         this.mcpHandler = new MCPHandler(client);
         this.config = config;
@@ -43,7 +44,8 @@ export class HTTPHandler {
                     id: null
                 },
                 standardHeaders: true,
-                legacyHeaders: false
+                legacyHeaders: false,
+                skip: (req) => req.path === '/health'
             });
             this.app.use(limiter);
         }
@@ -136,7 +138,10 @@ export class HTTPHandler {
             return next();
         }
         const apiKey = req.header('X-API-Key') || req.query.apiKey;
-        const clientIP = req.ip || req.connection.remoteAddress;
+        const forwardedFor = req.header('X-Forwarded-For');
+        const clientIP = forwardedFor
+            ? forwardedFor.split(',')[0].trim()
+            : (req.ip || req.connection.remoteAddress);
         // Check API key
         if (this.config.security.apiKeys && this.config.security.apiKeys.length > 0) {
             if (!apiKey || !this.config.security.apiKeys.includes(apiKey)) {
@@ -151,24 +156,22 @@ export class HTTPHandler {
                 return;
             }
         }
-        // Check allowed IPs
+        // Check allowed IPs (disabled - allow all)
         if (this.config.security.allowedIPs && this.config.security.allowedIPs.length > 0) {
-            const isAllowed = this.config.security.allowedIPs.some((allowedIP) => {
-                if (allowedIP.includes('/')) {
-                    // CIDR notation - simplified check
-                    return clientIP?.startsWith(allowedIP.split('/')[0]);
-                }
-                return clientIP === allowedIP;
-            });
-            if (!isAllowed) {
-                res.status(403).json({
-                    jsonrpc: '2.0',
-                    error: {
-                        code: -32002,
-                        message: 'IP address not allowed'
-                    },
-                    id: null
+            if (!this.config.security.allowedIPs.includes('*')) {
+                const isAllowed = this.config.security.allowedIPs.some((allowedIP) => {
+                    return clientIP === allowedIP;
                 });
+                if (!isAllowed) {
+                    res.status(403).json({
+                        jsonrpc: '2.0',
+                        error: {
+                            code: -32002,
+                            message: 'IP address not allowed'
+                        },
+                        id: null
+                    });
+                }
                 return;
             }
         }

@@ -12,6 +12,20 @@ import { CacheFactory } from '../utils/cache.js';
 import { ResponseProcessor } from '../utils/response-processor.js';
 import { ConfigManager } from '../config/index.js';
 import { randomUUID } from 'crypto';
+function safeStringify(value, maxLength = 500) {
+    try {
+        if (typeof value === 'string') {
+            return value.substring(0, maxLength);
+        }
+        const str = safeStringify(value);
+        if (!str)
+            return '';
+        return str.substring(0, maxLength);
+    }
+    catch (err) {
+        return '[Unserializable response]';
+    }
+}
 export class AEMHttpClient {
     constructor(options = {}) {
         this.config = options.config || ConfigManager.getInstance().getAEMConfig();
@@ -163,7 +177,7 @@ export class AEMHttpClient {
                     url: response.config?.url,
                     responseBody: typeof response.data === 'string'
                         ? response.data.substring(0, 500)
-                        : JSON.stringify(response.data).substring(0, 500),
+                        : safeStringify(response.data),
                     headers: response.headers
                 });
                 throw new AEMException(errorMessage, response.status === 401 || response.status === 403 ? 'AUTHENTICATION_ERROR' : 'SERVER_ERROR', response.status >= 500, // Retry on server errors
@@ -176,7 +190,7 @@ export class AEMHttpClient {
             }
             // Check if response is HTML (login page) instead of JSON
             const contentType = response.headers['content-type'] || '';
-            const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+            const responseText = typeof response.data === 'string' ? response.data : safeStringify(response.data);
             if (contentType.includes('text/html') || responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
                 const htmlError = new Error('AEM returned HTML instead of JSON - likely authentication issue');
                 this.logger.error('AEM returned HTML instead of JSON - likely authentication issue', htmlError, {
@@ -328,7 +342,7 @@ export class AEMHttpClient {
                 message: error.message,
                 responseBody: typeof responseData === 'string'
                     ? responseData.substring(0, 500) // First 500 chars
-                    : JSON.stringify(responseData).substring(0, 500),
+                    : safeStringify(responseData).substring(0, 500),
                 requestHeaders,
                 wwwAuthenticate: responseHeaders?.['www-authenticate'] || 'NOT SET'
             });
@@ -484,8 +498,8 @@ export class AEMHttpClient {
             scope: 'openid,AdobeID,read_organizations,additional_info.projectedProductContext'
         };
         // Encode header and payload
-        const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-        const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+        const encodedHeader = Buffer.from(safeStringify(header)).toString('base64url');
+        const encodedPayload = Buffer.from(safeStringify(payload)).toString('base64url');
         // Create signature
         const signatureInput = `${encodedHeader}.${encodedPayload}`;
         const privateKey = auth.privateKey || process.env.AEM_PRIVATE_KEY;
@@ -565,7 +579,7 @@ export class AEMHttpClient {
      * Generate cache key
      */
     generateCacheKey(method, path, params) {
-        const paramsStr = params ? JSON.stringify(params) : '';
+        const paramsStr = params ? safeStringify(params) : '';
         return `aem:${method}:${path}:${Buffer.from(paramsStr).toString('base64')}`;
     }
     /**

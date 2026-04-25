@@ -229,10 +229,10 @@ export class ConfigManager {
         try {
             this.config = this.loadConfig();
             this.notifyConfigListeners();
-            console.log('Configuration reloaded successfully');
+            //console.log('Configuration reloaded successfully');
         }
         catch (error) {
-            console.error('Failed to reload configuration, keeping old config:', error);
+            //console.error('Failed to reload configuration, keeping old config:', error);
             this.config = oldConfig;
         }
     }
@@ -308,7 +308,7 @@ export class ConfigManager {
                 listener();
             }
             catch (error) {
-                console.error('Error in configuration listener:', error);
+                //console.error('Error in configuration listener:', error);
             }
         }
     }
